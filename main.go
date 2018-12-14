@@ -14,7 +14,10 @@ import (
 	"github.com/timberio/timber-cli/api"
 )
 
-var version string
+var (
+	version string
+	debug   bool
+)
 
 var (
 	defaultLogFormat = "{{ date }} {{ level }}{{ context.system.ip }} {{ context.system.hostname }} {{ context.http.request_id }} {{ context.user.email }} {{ message }}"
@@ -36,6 +39,11 @@ func main() {
 	defaultFacetsSlice := cli.StringSlice(defaultFacets)
 
 	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:   "debug, d",
+			Usage:  "Output debug messages",
+			EnvVar: "TIMBER_DEBUG",
+		},
 		cli.StringFlag{
 			Name:   "api-key, k",
 			Usage:  "Your timber.io API key",
@@ -266,7 +274,9 @@ The default is https://api.timber.io, it appears you've overridden this via the 
 		}
 
 		client = api.NewClient(host, apiKey)
-		client.SetLogger(logger)
+		if ctx.Bool("debug") {
+			client.SetLogger(logger)
+		}
 
 		return nil
 	}

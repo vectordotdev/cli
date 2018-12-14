@@ -26,6 +26,8 @@ type Logger interface {
 func NewClient(host string, apiKey string) *Client {
 	httpClient := retryablehttp.NewClient()
 
+	httpClient.Logger = nil
+
 	httpClient.HTTPClient.Timeout = 10 * time.Second
 
 	return &Client{
