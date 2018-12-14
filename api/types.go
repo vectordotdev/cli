@@ -44,7 +44,6 @@ type LogLine struct {
 	ApplicationID string    `json:"application_id"`
 	Datetime      time.Time `json:"dt"`
 	Level         string    `json:"level"`
-	Severity      int       `json:"severity"` // TODO remove and depend on Level
 	Message       string    `json:"message"`
 
 	Fields map[string]interface{}

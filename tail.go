@@ -11,59 +11,66 @@ import (
 	"github.com/timberio/timber-cli/api"
 )
 
-// Severities defined by Syslog 5424
-type Severity int
+// Levels as defined by https://github.com/timberio/log-event-json-schema/blob/master/schema.json
+type Level string
 
 const (
-	Emerg Severity = iota
-	Alert
-	Crit
-	Err
-	Warning
-	Notice
-	Info
-	Debug
+	Emergency Level = "emergency"
+	Alert           = "alert"
+	Critical        = "critical"
+	Error           = "error"
+	Warning         = "warn"
+	Notice          = "notice"
+	Info            = "info"
+	Debug           = "debug"
 )
 
 // shortened to 4 characters to not take as much width (given warning is 7)
-var severityNames = []string{
-	"emrg",
-	"alrt",
-	"crit",
-	"err",
-	"warn",
-	"noti",
-	"info",
-	"debg",
-}
-
-func (s Severity) Name() string {
-	if int(s) < 0 || int(s) > len(severityNames) {
-		return "unknown"
+func (l Level) ShortName() string {
+	switch l {
+	case Emergency:
+		return "emrg"
+	case Alert:
+		return "alrt"
+	case Critical:
+		return "crit"
+	case Error:
+		return "err"
+	case Warning:
+		return "warn"
+	case Notice:
+		return "noti"
+	case Info:
+		return "info"
+	case Debug:
+		return "debg"
+	default:
+		return "unkn"
 	}
-
-	return severityNames[s]
 }
 
-// Index corresponds to numerical severity
 // Borrowed from default web UI theme
-var severityColors = [][3]uint8{
-	{155, 59, 199},
-	{239, 86, 87},
-	{239, 86, 87},
-	{239, 86, 87},
-	{253, 183, 24},
-	{76, 196, 168},
-	{76, 196, 168},
-	{66, 126, 219},
-}
-
-func (s Severity) Color() [3]uint8 {
-	if int(s) < 0 || int(s) > len(severityNames) {
+func (l Level) Color() [3]uint8 {
+	switch l {
+	case Emergency:
+		return [3]uint8{155, 59, 199}
+	case Alert:
+		return [3]uint8{239, 86, 87}
+	case Critical:
+		return [3]uint8{239, 86, 87}
+	case Error:
+		return [3]uint8{239, 86, 87}
+	case Warning:
+		return [3]uint8{253, 183, 24}
+	case Notice:
+		return [3]uint8{76, 196, 168}
+	case Info:
+		return [3]uint8{76, 196, 168}
+	case Debug:
+		return [3]uint8{66, 126, 219}
+	default:
 		return [3]uint8{97, 97, 130}
 	}
-
-	return severityColors[s]
 }
 
 // Used for coloring distinct values that are not apriori known
@@ -135,12 +142,11 @@ func formatLine(w io.Writer, line *api.LogLine, fields []string, colorScale *Ord
 				formattedField = rgbterm.FgString(formattedField, hostnameColor[0], hostnameColor[1], hostnameColor[2])
 			}
 		case "level":
-			//TODO replace with level
-			severity := Severity(line.Severity)
-			formattedField = fmt.Sprintf("%-4s", severity.Name())
+			level := Level(line.Level)
+			formattedField = fmt.Sprintf("%-4s", level.ShortName())
 			if colorize {
-				severityColor := severity.Color()
-				formattedField = rgbterm.FgString(formattedField, severityColor[0], severityColor[1], severityColor[2])
+				levelColor := level.Color()
+				formattedField = rgbterm.FgString(formattedField, levelColor[0], levelColor[1], levelColor[2])
 			}
 		case "message":
 			formattedField = line.Message
