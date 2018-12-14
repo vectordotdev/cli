@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"gopkg.in/urfave/cli.v1"
 
@@ -52,9 +53,33 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:   "tail",
-			Usage:  "Live tails logs",
-			Action: runTail,
+			Name:  "tail",
+			Usage: "Live tails logs",
+			Action: func(ctx *cli.Context) error {
+				appIds := ctx.StringSlice("app-id")
+				if len(appIds) == 0 {
+					applications, err := client.ListApplications()
+					if err != nil {
+						return err
+					}
+					appIds = make([]string, len(applications))
+					log.Printf("found the following applications to tail:")
+					for i := range applications {
+						appIds[i] = applications[i].Id
+						log.Printf("%8s %s", applications[i].Id, applications[i].Name)
+					}
+				}
+
+				var w io.Writer = os.Stdout
+				if ctx.Bool("rainbow") {
+					w = rainbow.New(os.Stdout, 252, 255, 43)
+					colorize = false // disable colorization so that we don't get conflicting color codes
+				}
+
+				tail(w, appIds, ctx.String("query"), ctx.String("log-format"), colorize)
+
+				return nil
+			},
 			Flags: []cli.Flag{
 				cli.StringSliceFlag{
 					Name:   "app-id, a",
@@ -94,6 +119,17 @@ func main() {
 			Usage: "List applications that you have access to",
 			Action: func(_ *cli.Context) {
 				listApplications()
+			},
+			Flags: []cli.Flag{},
+		},
+
+		{
+			Name:  "api",
+			Usage: "Convenience command for sending requests to the Timber API (http://docs.api.timber.io)",
+			Action: func(ctx *cli.Context) error {
+				method := strings.ToUpper(ctx.Args().Get(0))
+				path := ctx.Args().Get(1)
+				return request(method, path, nil)
 			},
 			Flags: []cli.Flag{},
 		},
@@ -140,31 +176,4 @@ The default is https://api.timber.io, it appears you've overridden this via the 
 		// Exit with 64, EX_USAGE, to indicate a command line usage error
 		os.Exit(64)
 	}
-}
-
-// Entry point for running tail command
-func runTail(ctx *cli.Context) error {
-	appIds := ctx.StringSlice("app-id")
-	if len(appIds) == 0 {
-		applications, err := client.ListApplications()
-		if err != nil {
-			return err
-		}
-		appIds = make([]string, len(applications))
-		log.Printf("found the following applications to tail:")
-		for i := range applications {
-			appIds[i] = applications[i].Id
-			log.Printf("%8s %s", applications[i].Id, applications[i].Name)
-		}
-	}
-
-	var w io.Writer = os.Stdout
-	if ctx.Bool("rainbow") {
-		w = rainbow.New(os.Stdout, 252, 255, 43)
-		colorize = false // disable colorization so that we don't get conflicting color codes
-	}
-
-	tail(w, appIds, ctx.String("query"), ctx.String("log-format"), colorize)
-
-	return nil
 }

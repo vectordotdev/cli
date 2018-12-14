@@ -56,7 +56,7 @@ func (c *Client) Search(appIds []string, datetimeGreaterThan time.Time, query st
 		make([]*json.RawMessage, 0, limit),
 	}
 
-	err := c.request("POST", "/log_lines/search", searchRequest{
+	err := c.Request("POST", "/log_lines/search", searchRequest{
 		ApplicationIds:      appIds,
 		DatetimeGreaterThan: datetimeGreaterThan,
 		Query:               query,
@@ -92,7 +92,7 @@ func (c *Client) ListApplications() ([]*Application, error) {
 		Applications []*Application `json:"data"`
 	}{}
 
-	err := c.request("GET", "/applications", nil, &response)
+	err := c.Request("GET", "/applications", nil, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (c *Client) ListOrganizations() ([]*Organization, error) {
 		Organizations []*Organization `json:"data"`
 	}{}
 
-	err := c.request("GET", "/organizations", nil, &response)
+	err := c.Request("GET", "/organizations", nil, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (c *Client) ListOrganizations() ([]*Organization, error) {
 	return response.Organizations, nil
 }
 
-func (c *Client) request(method string, path string, requestStruct interface{}, responseStruct interface{}) error {
+func (c *Client) Request(method string, path string, requestStruct interface{}, responseStruct interface{}) error {
 	url := fmt.Sprintf("%s%s", c.Host, path)
 
 	var rawBody interface{}
