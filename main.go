@@ -46,7 +46,7 @@ func main() {
 				},
 				cli.StringFlag{
 					Name:   "query, q",
-					Usage:  "Query to pass to filter log lines. E.g. `level:error`",
+					Usage:  "Query to pass to filter log lines. E.g. level:error",
 					EnvVar: "TIMBER_QUERY",
 				},
 			},
