@@ -155,7 +155,7 @@ func runTail(ctx *cli.Context) error {
 	var w io.Writer = os.Stdout
 	if ctx.Bool("rainbow") {
 		w = rainbow.New(os.Stdout, 252, 255, 43)
-		colorize = false
+		colorize = false // disable colorization so that we don't get conflicting color codes
 	}
 
 	tail(w, appIds, ctx.String("query"), colorize)
