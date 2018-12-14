@@ -1,18 +1,19 @@
 package main
 
 import (
+  "encoding/json"
   "fmt"
 )
 
 func request(method string, path string, body interface{}) error {
-  response := make(map[string]interface{})
+  response := json.RawMessage{}
 
   err := client.Request(method, path, nil, response)
   if err != nil {
     return err
   }
 
-  fmt.Printf("%v", response)
+  fmt.Printf("%s", response)
 
   return nil
 }

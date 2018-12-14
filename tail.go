@@ -114,7 +114,7 @@ func tail(w io.Writer, appIds []string, query string, format string, facets []st
 			datetimeGreaterThan = logLines[len(logLines)-1].Datetime
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
