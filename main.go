@@ -133,12 +133,12 @@ func main() {
 					Name:   "facet, F",
 					Usage:  "The facets of the logs to highlight. Can be specified multiple times.",
 					Value:  &defaultFacetsSlice,
-					EnvVar: "TIMBER_APP_ID",
+					EnvVar: "TIMBER_FACET",
 				},
 				cli.StringFlag{
 					Name:   "view-id, v",
 					Usage:  "The view id to tail. If specified, this will set the default app ids, query, and format, but they can be overriden by the appropriate flags.",
-					EnvVar: "TIMBER_APP_ID",
+					EnvVar: "TIMBER_VIEW_ID",
 				},
 				cli.StringFlag{
 					Name:   "query, q",
