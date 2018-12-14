@@ -83,6 +83,19 @@ func (c *Client) ListApplications() ([]*Application, error) {
 	return response.Applications, nil
 }
 
+func (c *Client) ListOrganizations() ([]*Organization, error) {
+	response := struct {
+		Organizations []*Organization `json:"data"`
+	}{}
+
+	err := c.request("GET", "/organizations", nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Organizations, nil
+}
+
 func (c *Client) request(method string, path string, requestStruct interface{}, responseStruct interface{}) error {
 	url := fmt.Sprintf("%s%s", c.Host, path)
 

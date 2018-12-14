@@ -51,6 +51,24 @@ func main() {
 				},
 			},
 		},
+
+		{
+			Name:  "orgs",
+			Usage: "List orgs that you are a part of",
+			Action: func(_ *cli.Context) {
+				listOrganizations()
+			},
+			Flags: []cli.Flag{},
+		},
+
+		{
+			Name:  "applications",
+			Usage: "List applications that you have access to",
+			Action: func(_ *cli.Context) {
+				listApplications()
+			},
+			Flags: []cli.Flag{},
+		},
 	}
 
 	app.Before = func(ctx *cli.Context) (err error) {
