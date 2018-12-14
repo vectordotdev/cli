@@ -42,6 +42,7 @@ func (s Severity) Name() string {
 }
 
 // Index corresponds to numerical severity
+// Borrowed from default web UI theme
 var severityColors = [][3]uint8{
 	{155, 59, 199},
 	{239, 86, 87},
@@ -61,8 +62,8 @@ func (s Severity) Color() [3]uint8 {
 	return severityColors[s]
 }
 
-//TODO: fallback to 16 colors
-//Used for coloring distinct values that are not apriori known
+// Used for coloring distinct values that are not apriori known
+// Borrowed from default web UI theme
 var ordinalScale = [][3]uint8{
 	{218, 144, 62},
 	{225, 110, 111},
@@ -71,31 +72,8 @@ var ordinalScale = [][3]uint8{
 	{158, 83, 221},
 }
 
-type OrdinalColorScale struct {
-	colors [][3]uint8
-	index  map[string]int
-	curr   int
-}
-
-func NewOrdinalColorScale(colors [][3]uint8) *OrdinalColorScale {
-	return &OrdinalColorScale{
-		colors: colors,
-		index:  map[string]int{},
-	}
-}
-
-func (o *OrdinalColorScale) Get(s string) [3]uint8 {
-	i, ok := o.index[s]
-	if !ok {
-		i = o.curr
-		o.index[s] = i
-		o.curr = (o.curr + 1) % len(o.colors)
-	}
-
-	return o.colors[i]
-}
-
 // TODO handle outputing without colors
+// TODO: fallback to 16 colors
 func tail(appIds []string, query string) {
 	colorScale := NewOrdinalColorScale(ordinalScale)
 	datetimeGreaterThan := time.Now().Add(-5 * time.Minute) // TODO make a flag?
