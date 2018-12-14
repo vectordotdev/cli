@@ -16,3 +16,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/aybabtme/rgbterm"
+
+[[constraint]]
+  name = "github.com/mattn/go-isatty"
+  version = "0.0.4"

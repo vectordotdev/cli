@@ -5,7 +5,10 @@
   branch = "master"
   digest = "1:0faae5778f40187f1995baa872bc39cf6f20f5a6051e012c2847ce527f9640a5"
   name = "github.com/aybabtme/rgbterm"
-  packages = ["."]
+  packages = [
+    ".",
+    "rainbow",
+  ]
   pruneopts = ""
   revision = "cc83f3b3ce5911279513a46d6d3316d67bedaa54"
 
@@ -40,6 +43,14 @@
   packages = ["."]
   pruneopts = ""
   revision = "a7b3b318ed4e1ae5b80602b08627267303c68572"
+
+[[projects]]
+  digest = "1:3140e04675a6a91d2a20ea9d10bdadf6072085502e6def6768361260aee4b967"
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  pruneopts = ""
+  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
+  version = "v0.0.4"
 
 [[projects]]
   digest = "1:9d57e200ef5ccc4217fe0a34287308bac652435e7c6513f6263e0493d2245c56"
@@ -81,8 +92,10 @@
   analyzer-version = 1
   input-imports = [
     "github.com/aybabtme/rgbterm",
+    "github.com/aybabtme/rgbterm/rainbow",
     "github.com/hashicorp/go-retryablehttp",
     "github.com/logrusorgru/aurora",
+    "github.com/mattn/go-isatty",
     "github.com/sirupsen/logrus",
     "gopkg.in/urfave/cli.v1",
   ]

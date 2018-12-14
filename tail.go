@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/aybabtme/rgbterm"
@@ -74,7 +75,7 @@ var ordinalScale = [][3]uint8{
 
 // TODO handle outputing without colors
 // TODO: fallback to 16 colors
-func tail(appIds []string, query string) {
+func tail(w io.Writer, appIds []string, query string, colorize bool) {
 	colorScale := NewOrdinalColorScale(ordinalScale)
 	datetimeGreaterThan := time.Now().Add(-5 * time.Minute) // TODO make a flag?
 	for {
@@ -86,15 +87,26 @@ func tail(appIds []string, query string) {
 		// Example:
 		// Dec 14 09:50:16am info ec2-54-175-235-51 Frame batch read, size: 41, iterator_age_ms: 0
 		for _, line := range logLines {
-			hostnameColor := colorScale.Get(line.Context.System.Hostname)
-			hostname := rgbterm.FgString(fmt.Sprintf("%-20s", line.Context.System.Hostname), hostnameColor[0], hostnameColor[1], hostnameColor[2])
+			hostname := fmt.Sprintf("%-20s", line.Context.System.Hostname)
+			if colorize {
+				hostnameColor := colorScale.Get(line.Context.System.Hostname)
+				hostname = rgbterm.FgString(hostname, hostnameColor[0], hostnameColor[1], hostnameColor[2])
+			}
 
 			severity := Severity(line.Severity)
-			severityColor := severity.Color()
-			level := rgbterm.FgString(fmt.Sprintf("%-4s", severity.Name()), severityColor[0], severityColor[1], severityColor[2])
+			level := fmt.Sprintf("%-4s", severity.Name())
+			if colorize {
+				severityColor := severity.Color()
+				level = rgbterm.FgString(level, severityColor[0], severityColor[1], severityColor[2])
+			}
 
-			fmt.Printf("%s %s %s %s\n",
-				rgbterm.FgString(line.Datetime.Format("Jan 02 03:04:05pm"), 85, 79, 201),
+			datetime := line.Datetime.Format("Jan 02 03:04:05pm")
+			if colorize {
+				datetime = rgbterm.FgString(datetime, 85, 79, 201)
+			}
+
+			fmt.Fprintf(w, "%s %s %s %s\n",
+				datetime,
 				level,
 				hostname,
 				line.Message,

@@ -1,15 +1,22 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 
 	"gopkg.in/urfave/cli.v1"
 
+	"github.com/aybabtme/rgbterm/rainbow"
+	isatty "github.com/mattn/go-isatty"
 	"github.com/timberio/timber-cli/api"
 )
 
 var version string
+
+// cribbed from fatih/color
+var colorize = os.Getenv("TERM") != "dumb" &&
+	(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 
 var client *api.Client
 
@@ -31,6 +38,16 @@ func main() {
 			Value:  "https://api.timber.io",
 			EnvVar: "TIMBER_HOST",
 		},
+		cli.BoolFlag{
+			Name:   "color-output, C",
+			Usage:  "Set to force color output even if output is not a color terminal",
+			EnvVar: "TIMBER_COLOR",
+		},
+		cli.BoolFlag{
+			Name:   "monochrome-output, M",
+			Usage:  "Disable color output",
+			EnvVar: "TIMBER_NO_COLOR",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -48,6 +65,11 @@ func main() {
 					Name:   "query, q",
 					Usage:  "Query to pass to filter log lines. E.g. level:error",
 					EnvVar: "TIMBER_QUERY",
+				},
+				cli.BoolFlag{
+					Name:   "rainbow, r",
+					Usage:  "Color your logs with all the colors of the rainbow",
+					EnvVar: "TIMBER_RAINBOW",
 				},
 			},
 		},
@@ -72,6 +94,13 @@ func main() {
 	}
 
 	app.Before = func(ctx *cli.Context) (err error) {
+		if ctx.Bool("color-output") {
+			colorize = true
+		}
+		if ctx.Bool("monochrome-output") {
+			colorize = false
+		}
+
 		apiKey := ctx.GlobalString("api-key")
 
 		if apiKey == "" {
@@ -123,7 +152,13 @@ func runTail(ctx *cli.Context) error {
 		}
 	}
 
-	tail(appIds, ctx.String("query"))
+	var w io.Writer = os.Stdout
+	if ctx.Bool("rainbow") {
+		w = rainbow.New(os.Stdout, 252, 255, 43)
+		colorize = false
+	}
+
+	tail(w, appIds, ctx.String("query"), colorize)
 
 	return nil
 }
