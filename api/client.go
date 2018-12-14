@@ -165,3 +165,16 @@ func (c *Client) GetSavedView(id string) (*SavedView, error) {
 
 	return response.SavedView, nil
 }
+
+func (c *Client) ListSavedViews() ([]*SavedView, error) {
+	response := struct {
+		SavedViews []*SavedView `json:"data"`
+	}{}
+
+	err := c.Request("GET", "/saved_views?type=CONSOLE", nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.SavedViews, nil
+}

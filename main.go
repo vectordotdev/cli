@@ -177,6 +177,15 @@ func main() {
 		},
 
 		{
+			Name:  "views",
+			Usage: "List saved views that you have access to (currently only console views are displayed)",
+			Action: func(_ *cli.Context) {
+				listSavedViews()
+			},
+			Flags: []cli.Flag{},
+		},
+
+		{
 			Name:  "api",
 			Usage: "Convenience command for sending requests to the Timber API (http://docs.api.timber.io)",
 			Action: func(ctx *cli.Context) error {
