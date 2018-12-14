@@ -168,7 +168,7 @@ func main() {
 		},
 
 		{
-			Name:  "applications",
+			Name:  "apps",
 			Usage: "List applications that you have access to",
 			Action: func(_ *cli.Context) {
 				listApplications()
