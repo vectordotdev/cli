@@ -13,6 +13,7 @@
 [[constraint]]
   name = "github.com/logrusorgru/aurora"
   branch = "master"
+
 [[constraint]]
   branch = "master"
   name = "github.com/aybabtme/rgbterm"

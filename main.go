@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -60,8 +61,9 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:  "tail",
-			Usage: "Live tails logs",
+			Name:    "tail",
+			Aliases: []string{"t"},
+			Usage:   "Live tails logs",
 			Action: func(ctx *cli.Context) error {
 				var w io.Writer = os.Stdout
 				if ctx.Bool("rainbow") {
@@ -160,7 +162,7 @@ func main() {
 
 		{
 			Name:  "orgs",
-			Usage: "List orgs that you are a part of",
+			Usage: "List organizations that you are a part of",
 			Action: func(_ *cli.Context) {
 				listOrganizations()
 			},
@@ -187,11 +189,47 @@ func main() {
 
 		{
 			Name:  "api",
-			Usage: "Convenience command for sending requests to the Timber API (http://docs.api.timber.io)",
+			Usage: "Make authenticated requests to the Timber API (http://docs.api.timber.io)",
 			Action: func(ctx *cli.Context) error {
 				method := strings.ToUpper(ctx.Args().Get(0))
 				path := ctx.Args().Get(1)
 				return request(method, path, nil)
+			},
+			Flags: []cli.Flag{},
+		},
+
+		{
+			Name:    "jesus",
+			Aliases: []string{"jc"},
+			Usage:   "Jesus in your logs",
+			Action: func(_ *cli.Context) {
+				jesus := `
+█████░░░░░░░░░░░░░░░░░░░░░░░▀▄░░░░░
+████▀░░░░░░░░░░░░░░░░░░░░░░░░░█▄░░▀
+█████▄█▄▄▄░▄░░░░░░░░░░░▄█▄█▄█████░░
+███████████████▄█░░░░▄██████▀░░░██░
+████████████████▀░░░░▀██▀███▀█████▀
+██████████▀░████▀░░░░░░▀▀░▀█▀░▀████
+████████▀░▀░░▄██▀░░░░░░░░░░░░░░░▀██
+██▀███▀▀▀░░░░███▀░░░░░░░░░░░░░░░░░▀
+███░░░░░░░░░░███▀░░░░░░░░░░░░░░░░░▀
+███▄░░░░░░░░████▀░░░░░░░░░░░░░░░░░░
+█████░░░░░░░▀███░░░░░░░░░░░░░░░░░░░
+███████▄░░░░█████▄░░░▄░░░░░░░░░░░░░
+███████▄░░░▄████████▀▀▀░░░░░░░░░░░░
+████████▀▄▀████████░░░░░░░░░░░░░░░░
+█████████▄██████▀██░▀░░░░░░░░░░░░░░
+████████████████▄▄▀▄░▄░░░░░░░░░░░░▄
+████████████████▀▀▀▀▀▀▀▀▀▀░░░░░░░▄▀
+███████████████████▄█░░░░░░░░░░░███
+████████████████████▀░░░░░░░▀▄▀▄█▄█
+██████████████▀▄▀░░░░░░░░░▀█████▀██
+███████████████▀░▄██░░░░░▄▀█████▀▄▀
+██████████████▀▄▀███▀▄▀░████▀▀▀░▀▄░
+████████████████████▀█████▀░░░░░░░░`
+
+				fmt.Printf("%s", jesus)
+
 			},
 			Flags: []cli.Flag{},
 		},
