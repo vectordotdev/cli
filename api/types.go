@@ -3,6 +3,7 @@ package api
 import "time"
 
 // TODO maybe handle nullable fields better
+
 type Application struct {
 	APIKey                string    `json:"api_key"`
 	BillingSubscriptionID string    `json:"billing_subscription_id"`
@@ -47,4 +48,21 @@ type LogLine struct {
 	Message       string    `json:"message"`
 
 	Fields map[string]interface{}
+}
+
+// TODO fill out chart settings
+type SavedView struct {
+	ChartSettings   interface{} `json:"chart_settings"`
+	ConsoleSettings struct {
+		DtGte         *string  `json:"dt_gte"`
+		DtLte         *string  `json:"dt_lte"`
+		Facets        []string `json:"facets"`
+		LogLineFormat string   `json:"log_line_format"`
+		Query         *string  `json:"query"`
+		SourceIds     []string `json:"source_ids"`
+	} `json:"console_settings"`
+	Id             string `json:"id"`
+	Name           string `json:"name"`
+	OrganizationId string `json:"organization_id"`
+	Type           string `json:"type"`
 }

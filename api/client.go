@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path"
 	"time"
 
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
@@ -150,4 +151,17 @@ func (c *Client) Request(method string, path string, requestStruct interface{}, 
 	}
 
 	return nil
+}
+
+func (c *Client) GetSavedView(id string) (*SavedView, error) {
+	response := struct {
+		SavedView *SavedView `json:"data"`
+	}{}
+
+	err := c.Request("GET", path.Join("/saved_views", id), nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.SavedView, nil
 }

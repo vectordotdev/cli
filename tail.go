@@ -88,7 +88,7 @@ var tokenRegexp = regexp.MustCompile(`{{\s*(.*?)\s*}}`)
 // TODO fallback to 16 colors
 // TODO implement format parser
 //	Currently only supports a format made of identifiers, space delimited
-func tail(w io.Writer, appIds []string, query string, format string, colorize bool) {
+func tail(w io.Writer, appIds []string, query string, format string, facets []string, colorize bool) {
 	fields := []string{}
 	for _, match := range tokenRegexp.FindAllStringSubmatch(format, -1) {
 		fields = append(fields, match[1])
@@ -105,7 +105,7 @@ func tail(w io.Writer, appIds []string, query string, format string, colorize bo
 		// Example:
 		// Dec 14 09:50:16am info ec2-54-175-235-51 Frame batch read, size: 41, iterator_age_ms: 0
 		for _, line := range logLines {
-			if err := formatLine(w, line, fields, colorScale, colorize); err != nil {
+			if err := formatLine(w, line, fields, facets, colorScale, colorize); err != nil {
 				logger.Fatal(err)
 			}
 		}
@@ -118,15 +118,17 @@ func tail(w io.Writer, appIds []string, query string, format string, colorize bo
 	}
 }
 
-//fmt.Fprintf(w, "%s %s %s %s\n",
-//datetime,
-//level,
-//hostname,
-//line.Message,
-//)
+func stringContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
 
 // TODO this is taking a lot of arguments...
-func formatLine(w io.Writer, line *api.LogLine, fields []string, colorScale *OrdinalColorScale, colorize bool) error {
+func formatLine(w io.Writer, line *api.LogLine, fields []string, facets []string, colorScale *OrdinalColorScale, colorize bool) error {
 	for _, field := range fields {
 		formattedField := ""
 		switch field {
@@ -152,6 +154,10 @@ func formatLine(w io.Writer, line *api.LogLine, fields []string, colorScale *Ord
 			formattedField = line.Message
 		default:
 			formattedField = findField(strings.Split(field, "."), line.Fields)
+			if stringContains(facets, field) && colorize {
+				color := colorScale.Get(formattedField)
+				formattedField = rgbterm.FgString(formattedField, color[0], color[1], color[2])
+			}
 		}
 
 		fmt.Fprintf(w, "%s ", formattedField)
@@ -175,7 +181,7 @@ func findField(path []string, fields map[string]interface{}) string {
 	}
 
 	if len(path) == 1 {
-		return fmt.Sprintf("%s", v)
+		return fmt.Sprintf("%v", v)
 	}
 
 	fields, ok = v.(map[string]interface{})
