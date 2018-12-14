@@ -51,9 +51,9 @@ func (c *Client) Search(appIds []string, datetimeGreaterThan time.Time, query st
 	limit := 250
 
 	response := struct {
-		LogLines []*LogLine `json:"data"`
+		RawLines []*json.RawMessage `json:"data"`
 	}{
-		LogLines: make([]*LogLine, 0, limit),
+		make([]*json.RawMessage, 0, limit),
 	}
 
 	err := c.request("POST", "/log_lines/search", searchRequest{
@@ -67,7 +67,24 @@ func (c *Client) Search(appIds []string, datetimeGreaterThan time.Time, query st
 		return nil, err
 	}
 
-	return response.LogLines, nil
+	logLines := make([]*LogLine, len(response.RawLines))
+	for i, rawLine := range response.RawLines {
+		// unmarshal twice, once to fill structured fields, once to unmarshal the unknown fields
+		// TODO it'd be better to only unmarshal once
+		logLine := &LogLine{}
+
+		if err := json.Unmarshal(*rawLine, logLine); err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(*rawLine, &logLine.Fields); err != nil {
+			return nil, err
+		}
+
+		logLines[i] = logLine
+	}
+
+	return logLines, nil
 }
 
 func (c *Client) ListApplications() ([]*Application, error) {

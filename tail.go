@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aybabtme/rgbterm"
+	"github.com/timberio/timber-cli/api"
 )
 
 // Severities defined by Syslog 5424
@@ -73,9 +76,17 @@ var ordinalScale = [][3]uint8{
 	{158, 83, 221},
 }
 
-// TODO handle outputing without colors
-// TODO: fallback to 16 colors
-func tail(w io.Writer, appIds []string, query string, colorize bool) {
+var tokenRegexp = regexp.MustCompile(`{{\s*(.*?)\s*}}`)
+
+// TODO fallback to 16 colors
+// TODO implement format parser
+//	Currently only supports a format made of identifiers, space delimited
+func tail(w io.Writer, appIds []string, query string, format string, colorize bool) {
+	fields := []string{}
+	for _, match := range tokenRegexp.FindAllStringSubmatch(format, -1) {
+		fields = append(fields, match[1])
+	}
+
 	colorScale := NewOrdinalColorScale(ordinalScale)
 	datetimeGreaterThan := time.Now().Add(-5 * time.Minute) // TODO make a flag?
 	for {
@@ -87,30 +98,9 @@ func tail(w io.Writer, appIds []string, query string, colorize bool) {
 		// Example:
 		// Dec 14 09:50:16am info ec2-54-175-235-51 Frame batch read, size: 41, iterator_age_ms: 0
 		for _, line := range logLines {
-			hostname := fmt.Sprintf("%-20s", line.Context.System.Hostname)
-			if colorize {
-				hostnameColor := colorScale.Get(line.Context.System.Hostname)
-				hostname = rgbterm.FgString(hostname, hostnameColor[0], hostnameColor[1], hostnameColor[2])
+			if err := formatLine(w, line, fields, colorScale, colorize); err != nil {
+				logger.Fatal(err)
 			}
-
-			severity := Severity(line.Severity)
-			level := fmt.Sprintf("%-4s", severity.Name())
-			if colorize {
-				severityColor := severity.Color()
-				level = rgbterm.FgString(level, severityColor[0], severityColor[1], severityColor[2])
-			}
-
-			datetime := line.Datetime.Format("Jan 02 03:04:05pm")
-			if colorize {
-				datetime = rgbterm.FgString(datetime, 85, 79, 201)
-			}
-
-			fmt.Fprintf(w, "%s %s %s %s\n",
-				datetime,
-				level,
-				hostname,
-				line.Message,
-			)
 		}
 
 		if len(logLines) != 0 {
@@ -119,4 +109,73 @@ func tail(w io.Writer, appIds []string, query string, colorize bool) {
 
 		time.Sleep(2 * time.Second)
 	}
+}
+
+//fmt.Fprintf(w, "%s %s %s %s\n",
+//datetime,
+//level,
+//hostname,
+//line.Message,
+//)
+
+// TODO this is taking a lot of arguments...
+func formatLine(w io.Writer, line *api.LogLine, fields []string, colorScale *OrdinalColorScale, colorize bool) error {
+	for _, field := range fields {
+		formattedField := ""
+		switch field {
+		case "date":
+			formattedField = line.Datetime.Format("Jan 02 03:04:05pm")
+			if colorize {
+				formattedField = rgbterm.FgString(formattedField, 85, 79, 201)
+			}
+		case "context.system.hostname":
+			formattedField = fmt.Sprintf("%-20s", findField(strings.Split(field, "."), line.Fields))
+			if colorize {
+				hostnameColor := colorScale.Get(formattedField)
+				formattedField = rgbterm.FgString(formattedField, hostnameColor[0], hostnameColor[1], hostnameColor[2])
+			}
+		case "level":
+			//TODO replace with level
+			severity := Severity(line.Severity)
+			formattedField = fmt.Sprintf("%-4s", severity.Name())
+			if colorize {
+				severityColor := severity.Color()
+				formattedField = rgbterm.FgString(formattedField, severityColor[0], severityColor[1], severityColor[2])
+			}
+		case "message":
+			formattedField = line.Message
+		default:
+			formattedField = findField(strings.Split(field, "."), line.Fields)
+		}
+
+		fmt.Fprintf(w, "%s ", formattedField)
+	}
+
+	fmt.Fprintln(w)
+
+	return nil
+}
+
+// given a path in the form of []string{"path", "to", "value"}, extract this value from fields
+// if the value cannot be found at the path, returns ""
+func findField(path []string, fields map[string]interface{}) string {
+	if len(path) == 0 {
+		return ""
+	}
+
+	v, ok := fields[path[0]]
+	if !ok {
+		return ""
+	}
+
+	if len(path) == 1 {
+		return fmt.Sprintf("%s", v)
+	}
+
+	fields, ok = v.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+
+	return findField(path[1:], fields)
 }

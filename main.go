@@ -63,12 +63,18 @@ func main() {
 				},
 				cli.StringFlag{
 					Name:   "query, q",
-					Usage:  "Query to pass to filter log lines. E.g. level:error",
+					Usage:  "Query to pass to filter log lines. E.g. level:error.",
 					EnvVar: "TIMBER_QUERY",
+				},
+				cli.StringFlag{
+					Name:   "log-format, f",
+					Usage:  "Template to format log output. Wrap field identifiers with {{ }}. Currently does not output any sort of errors if this cannot be parsed and ignores all non-identifiers.",
+					EnvVar: "TIMBER_LOG_FORMAT",
+					Value:  "{{ date }} {{ level }}{{ context.system.ip }} {{ context.system.hostname }} {{ context.http.request_id }} {{ context.user.email }} {{ message }}",
 				},
 				cli.BoolFlag{
 					Name:   "rainbow, r",
-					Usage:  "Color your logs with all the colors of the rainbow",
+					Usage:  "Color your logs with all the colors of the rainbow.",
 					EnvVar: "TIMBER_RAINBOW",
 				},
 			},
@@ -158,7 +164,7 @@ func runTail(ctx *cli.Context) error {
 		colorize = false // disable colorization so that we don't get conflicting color codes
 	}
 
-	tail(w, appIds, ctx.String("query"), colorize)
+	tail(w, appIds, ctx.String("query"), ctx.String("log-format"), colorize)
 
 	return nil
 }
