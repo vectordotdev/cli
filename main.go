@@ -5,9 +5,13 @@ import (
 	"os"
 
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/timberio/timber-cli/api"
 )
 
 var version string
+
+var client *api.Client
 
 func main() {
 	app := cli.NewApp()
@@ -44,6 +48,35 @@ func main() {
 		},
 	}
 
+	app.Before = func(ctx *cli.Context) (err error) {
+		apiKey := ctx.GlobalString("api-key")
+
+		if apiKey == "" {
+			message := `Timber API key is not set
+
+We could not locate your Timber API key, please set it via the --api-key flag or by setting the TIMBER_API_KEY env var.`
+
+			// Exit with 65, EX_DATAERR, to indicate input data was incorrect
+			return cli.NewExitError(message, 65)
+		}
+
+		host := ctx.GlobalString("host")
+
+		if host == "" {
+			message := `Timber host is not set
+
+The default is https://api.timber.io, it appears you've overridden this via the --host flag or the TIMBER_HOST env var`
+
+			// Exit with 65, EX_DATAERR, to indicate input data was incorrect
+			return cli.NewExitError(message, 65)
+		}
+
+		client = api.NewClient(host, apiKey)
+		client.SetLogger(logger)
+
+		return nil
+	}
+
 	err := app.Run(os.Args)
 	if err != nil {
 		// Exit with 64, EX_USAGE, to indicate a command line usage error
@@ -53,31 +86,12 @@ func main() {
 
 // Entry point for running tail command
 func runTail(ctx *cli.Context) error {
-	apiKey := ctx.GlobalString("api-key")
-
-	if apiKey == "" {
-		message := `Timber API key is not set
-
-We could not locate your Timber API key, please set it via the --api-key flag or by setting the TIMBER_API_KEY env var.`
-
-		// Exit with 65, EX_DATAERR, to indicate input data was incorrect
-		return cli.NewExitError(message, 65)
-	}
-
-	host := ctx.GlobalString("host")
-
-	if host == "" {
-		message := `Timber host is not set
-
-The default is https://api.timber.io, it appears you've overridden this via the --host flag or the TIMBER_HOST env var`
-
-		// Exit with 65, EX_DATAERR, to indicate input data was incorrect
-		return cli.NewExitError(message, 65)
-	}
-
 	appIds := ctx.StringSlice("app-id")
 	if len(appIds) == 0 {
-		applications := getApplications(host, apiKey)
+		applications, err := client.ListApplications()
+		if err != nil {
+			return err
+		}
 		appIds = make([]string, len(applications))
 		log.Printf("found the following applications to tail:")
 		for i := range applications {
@@ -86,7 +100,7 @@ The default is https://api.timber.io, it appears you've overridden this via the 
 		}
 	}
 
-	tail(host, apiKey, appIds)
+	tail(appIds)
 
 	return nil
 }
