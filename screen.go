@@ -1,15 +1,15 @@
 package main
 
 import (
-  "fmt"
+	"fmt"
 
-  "github.com/logrusorgru/aurora"
+	"github.com/logrusorgru/aurora"
 )
 
 func println(message string) {
-  fmt.Println(message)
+	fmt.Println(message)
 }
 
 func printErrorln(message string) {
-  fmt.Println(aurora.Red(message))
+	fmt.Println(aurora.Red(message))
 }

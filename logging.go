@@ -1,19 +1,19 @@
 package main
 
 import (
-  "log"
-  "os"
+	"log"
+	"os"
 
-  "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type UTCFormatter struct {
-  logrus.Formatter
+	logrus.Formatter
 }
 
 func (u UTCFormatter) Format(e *logrus.Entry) ([]byte, error) {
-  e.Time = e.Time.UTC()
-  return u.Formatter.Format(e)
+	e.Time = e.Time.UTC()
+	return u.Formatter.Format(e)
 }
 
 // This provides a global logger to be used throughout the Timber package.
@@ -29,8 +29,8 @@ var logger = logrus.New()
 var standardLoggerAlternative = log.New(os.Stdout, "", log.LstdFlags)
 
 func init() {
-  // Ensure we're logging in a format that is file friendly.
-  textFormatter := &logrus.TextFormatter{DisableColors: true, FullTimestamp: true}
-  utcFormatter := UTCFormatter{textFormatter}
-  logger.Formatter = utcFormatter
+	// Ensure we're logging in a format that is file friendly.
+	textFormatter := &logrus.TextFormatter{DisableColors: true, FullTimestamp: true}
+	utcFormatter := UTCFormatter{textFormatter}
+	logger.Formatter = utcFormatter
 }
