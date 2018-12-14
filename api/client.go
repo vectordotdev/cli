@@ -43,21 +43,23 @@ type searchRequest struct {
 	ApplicationIds      []string  `json:"application_ids"`
 	DatetimeGreaterThan time.Time `json:"dt_gt"`
 	Limit               int       `json:"limit"`
+	Query               string    `json:"query"`
 	Sort                string    `json:"sort"` // TODO maybe make this an "enum"
 }
 
-func (c *Client) Search(appIds []string, datetimeGreaterThan time.Time) ([]*LogLine, error) {
+func (c *Client) Search(appIds []string, datetimeGreaterThan time.Time, query string) ([]*LogLine, error) {
 	limit := 250
 
 	response := struct {
 		LogLines []*LogLine `json:"data"`
 	}{
-		LogLines: make([]*LogLine, limit),
+		LogLines: make([]*LogLine, 0, limit),
 	}
 
 	err := c.request("POST", "/log_lines/search", searchRequest{
 		ApplicationIds:      appIds,
 		DatetimeGreaterThan: datetimeGreaterThan,
+		Query:               query,
 		Limit:               limit,
 		Sort:                "dt.desc",
 	}, &response)

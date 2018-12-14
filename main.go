@@ -21,12 +21,12 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:   "api-key",
+			Name:   "api-key, k",
 			Usage:  "Your timber.io API key",
 			EnvVar: "TIMBER_API_KEY",
 		},
 		cli.StringFlag{
-			Name:   "host",
+			Name:   "host, H",
 			Usage:  "Timber.io host, useful for testing",
 			Value:  "https://api.timber.io",
 			EnvVar: "TIMBER_HOST",
@@ -40,9 +40,14 @@ func main() {
 			Action: runTail,
 			Flags: []cli.Flag{
 				cli.StringSliceFlag{
-					Name:   "app-id",
+					Name:   "app-id, a",
 					Usage:  "The application id(s) to tail. Can be specified multiple times. If empty, will tail all applications.",
 					EnvVar: "TIMBER_APP_ID",
+				},
+				cli.StringFlag{
+					Name:   "query, q",
+					Usage:  "Query to pass to filter log lines. E.g. `level:error`",
+					EnvVar: "TIMBER_QUERY",
 				},
 			},
 		},
@@ -100,7 +105,7 @@ func runTail(ctx *cli.Context) error {
 		}
 	}
 
-	tail(appIds)
+	tail(appIds, ctx.String("query"))
 
 	return nil
 }

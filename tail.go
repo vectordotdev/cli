@@ -26,14 +26,15 @@ func severityToLevel(i int) string {
 	return severities[i]
 }
 
-func tail(appIds []string) {
+func tail(appIds []string, query string) {
 	datetimeGreaterThan := time.Now().Add(-5 * time.Minute) // TODO make a flag?
 	for {
-		logLines, err := client.Search(appIds, datetimeGreaterThan)
+		logLines, err := client.Search(appIds, datetimeGreaterThan, query)
 		if err != nil {
 			logger.Fatal(err)
 		}
 
+		fmt.Printf("lines: %+v\n", logLines)
 		// Example:
 		// Dec 14 09:50:16am info ec2-54-175-235-51 Frame batch read, size: 41, iterator_age_ms: 0
 		for _, line := range logLines {
