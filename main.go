@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"gopkg.in/urfave/cli.v1"
@@ -34,7 +35,7 @@ func main() {
 			Usage:  "Live tails logs",
 			Action: runTail,
 			Flags: []cli.Flag{
-				cli.IntSliceFlag{
+				cli.StringSliceFlag{
 					Name:   "app-id",
 					Usage:  "The application id(s) to tail. Can be specified multiple times. If empty, will tail all applications.",
 					EnvVar: "TIMBER_APP_ID",
@@ -74,7 +75,18 @@ The default is https://api.timber.io, it appears you've overridden this via the 
 		return cli.NewExitError(message, 65)
 	}
 
-	tail(host, apiKey, ctx.IntSlice("app-id"))
+	appIds := ctx.StringSlice("app-id")
+	if len(appIds) == 0 {
+		applications := getApplications(host, apiKey)
+		appIds = make([]string, len(applications))
+		log.Printf("found the following applications to tail:")
+		for i := range applications {
+			appIds[i] = applications[i].Id
+			log.Printf("%8s %s", applications[i].Id, applications[i].Name)
+		}
+	}
+
+	tail(host, apiKey, appIds)
 
 	return nil
 }

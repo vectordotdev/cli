@@ -28,7 +28,7 @@ func severityToLevel(i int) string {
 }
 
 type tailRequest struct {
-	ApplicationIds      []int     `json:"application_ids"`
+	ApplicationIds      []string  `json:"application_ids"`
 	DatetimeGreaterThan time.Time `json:"dt_gt"`
 	Limit               int       `json:"limit"`
 	Sort                string    `json:"sort"` // TODO maybe make this an "enum"
@@ -67,7 +67,7 @@ type logLine struct {
 	Severity int    `json:"severity"`
 }
 
-func tail(host string, apiKey string, appIds []int) {
+func tail(host string, apiKey string, appIds []string) {
 	datetimeGreaterThan := time.Now().Add(-5 * time.Minute) // TODO make a flag?
 	for {
 		url := fmt.Sprintf("%s%s", host, "/log_lines/search")
