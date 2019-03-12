@@ -46,10 +46,6 @@ build: clean-build
 		-osarch="openbsd/amd64" \
 		-output "$(build_dir)/$(exec)-$(version)-{{.OS}}-{{.Arch}}/$(exec)/bin/$(exec)"
 	@for f in $$(ls $(build_dir)); do \
-		support_source="$(CURDIR)/support"; \
-		support_dest="$(build_dir)/$$f/$(exec)"; \
-		echo "Copying $$support_source into $$support_dest"; \
-		cp -r $$support_source $$support_dest; \
 		readme_source="$(CURDIR)/README.md"; \
 		readme_dest="$(build_dir)/$$f/$(exec)/"; \
 		echo "Copying $$readme_source into $$readme_dest"; \
