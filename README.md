@@ -1,62 +1,32 @@
-# `timber` CLI
+# 🌲 Timber.io CLI - `timber`
 
-Command line interface for the [Timber.io](https://timber.io) logging service.
+<p align="center">
+  <a href="https://timber.io" target="_blank" align="center">
+    <img src="https://res.cloudinary.com/timber/image/upload/v1552328675/banner.jpg" width="900">
+  </a>
+  <br>
+</p>
 
-## Installation
+[![ISC License](https://img.shields.io/badge/license-ISC-ff69b4.svg)](LICENSE)
 
-### Mac OS
+Command line interface for the [Timber.io](https://timber.io) logging service. Live tail and
+search your logs from the command line.
 
-```shell
-brew tap timberio/brew && brew install timber
-```
+---
 
-### Pre-built binaries
+* **[Features](https://docs.timber.io/clients/cli#features)**
+* **[Installation](https://docs.timber.io/clients/cli#installation)**
+* **[Usage](https://docs.timber.io/clients/cli#usage)**
+* **[Guides](https://docs.timber.io/clients/cli/javascript#guides)**
 
-* [Darwin AMD64]()
-* [FreeBSD AMD64]()
-* [Linux AMD64]()
-* [Linux ARM]()
-* [Linux ARM64]()
-* [NetBSD AMD64]()
-* [OpenBSD AMD64]()
+---
 
-### Building From Source
+<p align="center">
+<a href="https://timber.io">Timber</a> &bull;
+<a href="https://docs.timber.io">Docs</a> &bull;
+<a href="https://timber.io/pricing">Pricing</a> &bull;
+<a href="https://timber.io/terms">Security</a> &bull;
+<a href="https://timber.io/privacy">Compliance</a>
+</p>
 
-Building from source requires `go`:
 
-```
-git clone git@github.com:timberio/cli.git timber-cli
-cd timber-cli
-go build
-```
-
-## Usage
-
-Usage options and falgs can be accessed with the `timber help` command:
-
-```shell
-NAME:
-   timber - Command line interface for the Timber.io logging service
-
-USAGE:
-   timber [global options] command [command options] [arguments...]
-
-COMMANDS:
-     tail, t  Live tails logs
-     orgs     List organizations that you are a part of
-     apps     List applications that you have access to
-     views    List saved views that you have access to (currently only console views are displayed)
-     api      Make authenticated requests to the Timber API (http://docs.api.timber.io)
-     help, h  Shows a list of commands or help for one command
-
-GLOBAL OPTIONS:
-   --debug, -d                Output debug messages [$TIMBER_DEBUG]
-   --api-key value, -k value  Your timber.io API key [$TIMBER_API_KEY]
-   --host value, -H value     Timber.io host, useful for testing (default: "https://api.timber.io") [$TIMBER_HOST]
-   --color-output, -C         Set to force color output even if output is not a color terminal [$TIMBER_COLOR]
-   --monochrome-output, -M    Disable color output [$TIMBER_NO_COLOR]
-   --help, -h                 show help
-   --version, -v              print the version
-```
-
-## Docs
