@@ -109,7 +109,7 @@ func main() {
 				if ctx.IsSet("log-format") {
 					format = ctx.String("log-format")
 				}
-				if ctx.IsSet("log-format") {
+				if ctx.IsSet("query") {
 					query = ctx.String("query")
 				}
 
