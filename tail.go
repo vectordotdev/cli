@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/aybabtme/rgbterm"
-	"github.com/timberio/timber-cli/api"
+	"github.com/timberio/cli/api"
 )
 
 // Levels as defined by https://github.com/timberio/log-event-json-schema/blob/master/schema.json

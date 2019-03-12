@@ -10,7 +10,7 @@ import (
 
 	"github.com/aybabtme/rgbterm/rainbow"
 	isatty "github.com/mattn/go-isatty"
-	"github.com/timberio/timber-cli/api"
+	"github.com/timberio/cli/api"
 )
 
 var (

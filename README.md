@@ -8,7 +8,7 @@ Coming soon
 
 ## Usage
 
-Use options can be accessed with the `timber-cli help` command:
+Use options can be accessed with the `timber help` command:
 
 ```
 NAME:
