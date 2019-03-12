@@ -3,7 +3,7 @@ version: 2
 jobs:
   release:
     docker:
-      - image: timberio/cli-builder:1.0.0
+      - image: timberio/cli-builder:1.0.1
     working_directory: /go/src/github.com/timberio/cli
     steps:
       - checkout

@@ -4,13 +4,37 @@ Command line interface for the [Timber.io](https://timber.io) logging service.
 
 ## Installation
 
-Coming soon
+### Mac OS
+
+```shell
+brew tap timberio/brew && brew install timber
+```
+
+### Pre-built binaries
+
+* [Darwin AMD64]()
+* [FreeBSD AMD64]()
+* [Linux AMD64]()
+* [Linux ARM]()
+* [Linux ARM64]()
+* [NetBSD AMD64]()
+* [OpenBSD AMD64]()
+
+### Building From Source
+
+Building from source requires `go`:
+
+```
+git clone git@github.com:timberio/cli.git timber-cli
+cd timber-cli
+go build
+```
 
 ## Usage
 
-Use options can be accessed with the `timber help` command:
+Usage options and falgs can be accessed with the `timber help` command:
 
-```
+```shell
 NAME:
    timber - Command line interface for the Timber.io logging service
 
@@ -34,3 +58,5 @@ GLOBAL OPTIONS:
    --help, -h                 show help
    --version, -v              print the version
 ```
+
+## Docs
