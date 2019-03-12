@@ -4,7 +4,7 @@ jobs:
   build:
     docker:
       - image: timberio/cli-builder:1.0.0
-    working_directory: /go/src/github.com/timberio/timber-cli
+    working_directory: /go/src/github.com/timberio/cli
     environment:
       TEST_RESULTS: /tmp/test-results
     steps:
@@ -23,7 +23,7 @@ jobs:
   release:
     docker:
       - image: timberio/cli-builder:1.0.0
-    working_directory: /go/src/github.com/timberio/timber-cli
+    working_directory: /go/src/github.com/timberio/cli
     steps:
       - checkout
       - run:
