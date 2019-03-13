@@ -191,6 +191,8 @@ func (c *Client) Request(method string, path string, requestStruct interface{}, 
 	}
 	defer resp.Body.Close()
 
+	fmt.Print("Hello")
+
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		if responseStruct != nil {
 			err = json.NewDecoder(resp.Body).Decode(responseStruct)
