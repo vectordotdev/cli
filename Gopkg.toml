@@ -15,9 +15,17 @@
   branch = "master"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/aybabtme/rgbterm"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/mattn/go-isatty"
   version = "0.0.4"
+
+[[constraint]]
+  name = "github.com/mitchellh/go-homedir"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/fatih/color"
+  branch = "master"

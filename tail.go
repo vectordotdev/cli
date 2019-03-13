@@ -11,6 +11,10 @@ import (
 	"github.com/timberio/cli/api"
 )
 
+var (
+	defaultLogFormat = "{{ date }} {{ level }}{{ context.system.ip }} {{ context.system.hostname }} {{ context.http.request_id }} {{ context.user.email }} {{ message }}"
+)
+
 // Levels as defined by https://github.com/timberio/log-event-json-schema/blob/master/schema.json
 type Level string
 
@@ -88,7 +92,7 @@ var tokenRegexp = regexp.MustCompile(`{{\s*(.*?)\s*}}`)
 // TODO fallback to 16 colors
 // TODO implement format parser
 //	Currently only supports a format made of identifiers, space delimited
-func tail(w io.Writer, appIds []string, query string, format string, facets []string, colorize bool) {
+func tail(w io.Writer, appIds []string, query string, format string, colorize bool) {
 	fields := []string{}
 	for _, match := range tokenRegexp.FindAllStringSubmatch(format, -1) {
 		fields = append(fields, match[1])
@@ -105,7 +109,7 @@ func tail(w io.Writer, appIds []string, query string, format string, facets []st
 		// Example:
 		// Dec 14 09:50:16am info ec2-54-175-235-51 Frame batch read, size: 41, iterator_age_ms: 0
 		for _, line := range logLines {
-			if err := formatLine(w, line, fields, facets, colorScale, colorize); err != nil {
+			if err := formatLine(w, line, fields, colorScale, colorize); err != nil {
 				logger.Fatal(err)
 			}
 		}
@@ -128,12 +132,12 @@ func stringContains(s []string, e string) bool {
 }
 
 // TODO this is taking a lot of arguments...
-func formatLine(w io.Writer, line *api.LogLine, fields []string, facets []string, colorScale *OrdinalColorScale, colorize bool) error {
+func formatLine(w io.Writer, line *api.LogLine, fields []string, colorScale *OrdinalColorScale, colorize bool) error {
 	for _, field := range fields {
 		formattedField := ""
 		switch field {
 		case "date":
-			formattedField = line.Datetime.Format("Jan 02 03:04:05pm")
+			formattedField = line.Datetime.Format("Jan 02 03:04:05.000pm")
 			if colorize {
 				formattedField = rgbterm.FgString(formattedField, 85, 79, 201)
 			}
@@ -154,10 +158,6 @@ func formatLine(w io.Writer, line *api.LogLine, fields []string, facets []string
 			formattedField = line.Message
 		default:
 			formattedField = findField(strings.Split(field, "."), line.Fields)
-			if stringContains(facets, field) && colorize {
-				color := colorScale.Get(formattedField)
-				formattedField = rgbterm.FgString(formattedField, color[0], color[1], color[2])
-			}
 		}
 
 		fmt.Fprintf(w, "%s ", formattedField)

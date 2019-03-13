@@ -6,12 +6,12 @@ import "time"
 // TODO maybe handle nullable fields better
 
 type ServiceError struct {
-	StatusCode int
-	Body       string
+	StatusCode  int
+	ErrorStruct Error
 }
 
 func (e *ServiceError) Error() string {
-	return fmt.Sprintf("Request to Timber API failed! Status: %d, Body: %s", e.StatusCode, e.Body)
+	return fmt.Sprintf("Request to Timber API failed!\nStatus: %d\nMessage: %s", e.StatusCode, e.ErrorStruct.Message)
 }
 
 type Application struct {
@@ -25,11 +25,14 @@ type Application struct {
 	LogLineFormat         string    `json:"log_line_format"`
 	Name                  string    `json:"name"`
 	OrganizationId        string    `json:"organization_id"`
-	PlatformType          string    `json:"platform_type"`
 	Slug                  string    `json:"slug"`
 	SourceType            string    `json:"source_type"`
 	Tags                  []string  `json:"tags"`
 	UpdatedAt             time.Time `json:"updated_at"`
+}
+
+type Error struct {
+	Message string `json:message`
 }
 
 type Organization struct {
@@ -43,9 +46,7 @@ type Organization struct {
 	LogLineFormat         string    `json:"log_line_format"`
 	Name                  string    `json:"name"`
 	OrganizationID        string    `json:"organization_id"`
-	PlatformType          string    `json:"platform_type"`
 	Slug                  string    `json:"slug"`
-	SourceType            string    `json:"source_type"`
 	Tags                  []string  `json:"tags"`
 	UpdatedAt             time.Time `json:"updated_at"`
 }

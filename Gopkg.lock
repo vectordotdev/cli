@@ -13,6 +13,14 @@
   revision = "cc83f3b3ce5911279513a46d6d3316d67bedaa54"
 
 [[projects]]
+  branch = "master"
+  digest = "1:eeba285fdc8e024e3305d5efd2a85e9e46097172873f9c841ae575527e6affbe"
+  name = "github.com/fatih/color"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3f9d52f7176a6927daacff70a3e8d1dc2025c53e"
+
+[[projects]]
   digest = "1:05334858a0cfb538622a066e065287f63f42bee26a7fda93a789674225057201"
   name = "github.com/hashicorp/go-cleanhttp"
   packages = ["."]
@@ -22,19 +30,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:88045f2d7e10110bc1be916d1ebf2fbd81d82bb2fa44e8e9727e386798244b78"
+  digest = "1:776139dc18d63ef223ffaca5d8e9a3057174890f84393d3c881e934100b66dbc"
   name = "github.com/hashicorp/go-retryablehttp"
   packages = ["."]
   pruneopts = ""
-  revision = "dfbae6744eb4c188d26ef53f1d39444c0c68b60c"
+  revision = "73489d0a1476f0c9e6fb03f9c39241523a496dfd"
 
 [[projects]]
-  digest = "1:6a874e3ddfb9db2b42bd8c85b6875407c702fa868eed20634ff489bc896ccfd3"
+  digest = "1:0f51cee70b0d254dbc93c22666ea2abf211af81c1701a96d04e2284b408621db"
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
   pruneopts = ""
-  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
-  version = "v1.0.1"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
 
 [[projects]]
   branch = "master"
@@ -45,39 +53,55 @@
   revision = "a7b3b318ed4e1ae5b80602b08627267303c68572"
 
 [[projects]]
-  digest = "1:3140e04675a6a91d2a20ea9d10bdadf6072085502e6def6768361260aee4b967"
+  digest = "1:9ea83adf8e96d6304f394d40436f2eb44c1dc3250d223b74088cc253a6cd0a1c"
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  pruneopts = ""
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  digest = "1:d0600e4cf07697303f37130791b2ce4577367931416bea8ec4f601bde3f7c5bf"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = ""
-  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
-  version = "v0.0.4"
+  revision = "c2a7a6ca930a4cd0bc33a3f298eb71960732a3a7"
+  version = "v0.0.7"
 
 [[projects]]
-  digest = "1:9d57e200ef5ccc4217fe0a34287308bac652435e7c6513f6263e0493d2245c56"
+  branch = "master"
+  digest = "1:6dbb0eb72090871f2e58d1e37973fe3cb8c0f45f49459398d3fc740cb30e13bd"
+  name = "github.com/mitchellh/go-homedir"
+  packages = ["."]
+  pruneopts = ""
+  revision = "af06845cf3004701891bf4fdb884bfe4920b3727"
+
+[[projects]]
+  digest = "1:b73fe282e350b3ef2c71d8ff08e929e0b9670b1bb5b7fde1d3c1b4cd6e6dc8b1"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = ""
-  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
-  version = "v1.2.0"
+  revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:887074c37fcefc2f49b5ae9c6f9f36107341aec23185613d0e9f1ee81db7f94a"
+  digest = "1:ab3e9a81a5ec54c5d1ed41d0d6898ba88c6799fa401b784b06bdee8e432d872b"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = ""
-  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+  revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
 
 [[projects]]
   branch = "master"
-  digest = "1:c2c4c39f961dde3f317a48713db65329863b61316edabf19b96784b2da8406ac"
+  digest = "1:9c1e747af61ab955fba74a79e87d5843a5d1d504e3ef86480f76e6a4e3a49136"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = ""
-  revision = "4d1cda033e0619309c606fc686de3adcf599539e"
+  revision = "fead79001313d15903fb4605b4a1b781532cd93e"
 
 [[projects]]
   digest = "1:e85837cb04b78f61688c6eba93ea9d14f60d611e2aaf8319999b1a60d2dafbfa"
@@ -93,9 +117,11 @@
   input-imports = [
     "github.com/aybabtme/rgbterm",
     "github.com/aybabtme/rgbterm/rainbow",
+    "github.com/fatih/color",
     "github.com/hashicorp/go-retryablehttp",
     "github.com/logrusorgru/aurora",
     "github.com/mattn/go-isatty",
+    "github.com/mitchellh/go-homedir",
     "github.com/sirupsen/logrus",
     "gopkg.in/urfave/cli.v1",
   ]
