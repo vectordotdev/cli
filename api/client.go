@@ -42,6 +42,10 @@ func (c *Client) SetLogger(l Logger) {
 	c.httpClient.Logger = l
 }
 
+//
+// Logs
+//
+
 type searchRequest struct {
 	ApplicationIds      []string  `json:"application_ids"`
 	DatetimeGreaterThan time.Time `json:"dt_gt"`
@@ -90,6 +94,10 @@ func (c *Client) Search(appIds []string, datetimeGreaterThan time.Time, query st
 	return logLines, nil
 }
 
+//
+// Sources
+//
+
 func (c *Client) ListApplications() ([]*Application, error) {
 	response := struct {
 		Applications []*Application `json:"data"`
@@ -103,6 +111,10 @@ func (c *Client) ListApplications() ([]*Application, error) {
 	return response.Applications, nil
 }
 
+//
+// Organizations
+//
+
 func (c *Client) ListOrganizations() ([]*Organization, error) {
 	response := struct {
 		Organizations []*Organization `json:"data"`
@@ -115,6 +127,40 @@ func (c *Client) ListOrganizations() ([]*Organization, error) {
 
 	return response.Organizations, nil
 }
+
+//
+// Saved Views
+//
+
+func (c *Client) GetSavedView(id string) (*SavedView, error) {
+	response := struct {
+		SavedView *SavedView `json:"data"`
+	}{}
+
+	err := c.Request("GET", path.Join("/saved_views", id), nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.SavedView, nil
+}
+
+func (c *Client) ListSavedViews() ([]*SavedView, error) {
+	response := struct {
+		SavedViews []*SavedView `json:"data"`
+	}{}
+
+	err := c.Request("GET", "/saved_views?type=CONSOLE", nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.SavedViews, nil
+}
+
+//
+// Util
+//
 
 func (c *Client) Request(method string, path string, requestStruct interface{}, responseStruct interface{}) error {
 	url := fmt.Sprintf("%s%s", c.Host, path)
@@ -145,38 +191,16 @@ func (c *Client) Request(method string, path string, requestStruct interface{}, 
 	}
 	defer resp.Body.Close()
 
-	if responseStruct != nil {
-		err = json.NewDecoder(resp.Body).Decode(responseStruct)
-		if err != nil {
-			return err
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		if responseStruct != nil {
+			err = json.NewDecoder(resp.Body).Decode(responseStruct)
+			if err != nil {
+				return err
+			}
 		}
+
+		return nil
+	} else {
+		return &ServiceError{StatusCode: resp.StatusCode, Body: ""}
 	}
-
-	return nil
-}
-
-func (c *Client) GetSavedView(id string) (*SavedView, error) {
-	response := struct {
-		SavedView *SavedView `json:"data"`
-	}{}
-
-	err := c.Request("GET", path.Join("/saved_views", id), nil, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return response.SavedView, nil
-}
-
-func (c *Client) ListSavedViews() ([]*SavedView, error) {
-	response := struct {
-		SavedViews []*SavedView `json:"data"`
-	}{}
-
-	err := c.Request("GET", "/saved_views?type=CONSOLE", nil, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return response.SavedViews, nil
 }

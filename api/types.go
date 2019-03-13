@@ -1,8 +1,18 @@
 package api
 
+import "fmt"
 import "time"
 
 // TODO maybe handle nullable fields better
+
+type ServiceError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *ServiceError) Error() string {
+	return fmt.Sprintf("Request to Timber API failed! Status: %d, Body: %s", e.StatusCode, e.Body)
+}
 
 type Application struct {
 	APIKey                string    `json:"api_key"`
