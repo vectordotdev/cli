@@ -16,8 +16,8 @@ search your logs from the command line.
 
 * **[Features](https://docs.timber.io/clients/cli#features)**
 * **[Installation](https://docs.timber.io/clients/cli#installation)**
-* **[Usage](https://docs.timber.io/clients/cli#usage)**
-* **[Guides](https://docs.timber.io/clients/cli/javascript#guides)**
+* **[Commands](https://docs.timber.io/clients/cli#commands)**
+* **[Usage](https://docs.timber.io/clients/cli/javascript#usage)**
 
 ---
 
