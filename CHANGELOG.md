@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.1.0] - 2019-03-14
+
+- Fix bug with live tailing
+- Addded `timber auth` and sub-commands
+
 ## [0.0.1] - 2019-03-12
 
 - Initial release
