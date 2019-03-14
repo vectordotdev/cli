@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"path"
+	"strconv"
 	"time"
 
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
@@ -48,29 +50,28 @@ func (c *Client) SetLogger(l Logger) {
 //
 
 type searchRequest struct {
-	ApplicationIds      []string  `json:"application_ids"`
-	DatetimeGreaterThan time.Time `json:"dt_gt"`
-	Limit               int       `json:"limit"`
-	Query               string    `json:"query"`
-	Sort                string    `json:"sort"` // TODO maybe make this an "enum"
+	ApplicationIds []string  `json:"application_ids"`
+	DtGt           time.Time `json:"dt_gt"`
+	Limit          int       `json:"limit"`
+	Query          string    `json:"query"`
+	Sort           string    `json:"sort"` // TODO maybe make this an "enum"
 }
 
-func (c *Client) Search(appIds []string, datetimeGreaterThan time.Time, query string) ([]*LogLine, error) {
-	limit := 250
+func NewSearchRequest() *searchRequest {
+	request := &searchRequest{}
+	request.Limit = 250
+	request.Sort = "dt.desc"
+	return request
+}
 
+func (c *Client) Search(request *searchRequest) ([]*LogLine, error) {
 	response := struct {
 		RawLines []*json.RawMessage `json:"data"`
 	}{
-		make([]*json.RawMessage, 0, limit),
+		make([]*json.RawMessage, 0, request.Limit),
 	}
 
-	err := c.Request("POST", "/log_lines/search", searchRequest{
-		ApplicationIds:      appIds,
-		DatetimeGreaterThan: datetimeGreaterThan,
-		Query:               query,
-		Limit:               limit,
-		Sort:                "dt.desc",
-	}, &response)
+	err := c.Request("POST", "/log_lines/search", nil, request, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func (c *Client) ListSources() ([]*Application, error) {
 		Applications []*Application `json:"data"`
 	}{}
 
-	err := c.Request("GET", "/applications", nil, &response)
+	err := c.Request("GET", "/applications", nil, nil, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func (c *Client) GetOrganization(id string) (*Organization, error) {
 		Organization *Organization `json:"data"`
 	}{}
 
-	err := c.Request("GET", path.Join("/organizations/", id), nil, &response)
+	err := c.Request("GET", path.Join("/organizations/", id), nil, nil, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +135,7 @@ func (c *Client) ListOrganizations() ([]*Organization, error) {
 		Organizations []*Organization `json:"data"`
 	}{}
 
-	err := c.Request("GET", "/organizations", nil, &response)
+	err := c.Request("GET", "/organizations", nil, nil, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +152,7 @@ func (c *Client) GetSavedView(id string) (*SavedView, error) {
 		SavedView *SavedView `json:"data"`
 	}{}
 
-	err := c.Request("GET", path.Join("/saved_views", id), nil, &response)
+	err := c.Request("GET", path.Join("/saved_views", id), nil, nil, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +165,7 @@ func (c *Client) ListSavedViews() ([]*SavedView, error) {
 		SavedViews []*SavedView `json:"data"`
 	}{}
 
-	err := c.Request("GET", "/saved_views?type=CONSOLE", nil, &response)
+	err := c.Request("GET", "/saved_views?type=CONSOLE", nil, nil, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -173,15 +174,105 @@ func (c *Client) ListSavedViews() ([]*SavedView, error) {
 }
 
 //
+// SQL Queries
+//
+
+func (c *Client) CreateSQLQuery(organizationID string, body string) (*SQLQuery, error) {
+	request := struct {
+		OrganizationID string `json:"organization_id"`
+		Body           string `json:"body"`
+	}{
+		OrganizationID: organizationID,
+		Body:           body,
+	}
+
+	response := struct {
+		SQLQuery *SQLQuery `json:"data"`
+	}{}
+
+	err := c.Request("POST", "/sql_queries", nil, &request, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.SQLQuery, nil
+}
+
+func (c *Client) GetSQLQuery(id string) (*SQLQuery, error) {
+	response := struct {
+		SQLQuery *SQLQuery `json:"data"`
+	}{}
+
+	err := c.Request("GET", path.Join("/sql_queries", id), nil, nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.SQLQuery, nil
+}
+
+func (c *Client) GetSQLQueryResults(id string) ([]interface{}, error) {
+	response := struct {
+		Results []interface{} `json:"data"`
+	}{}
+
+	err := c.Request("GET", path.Join("/sql_queries", id, "results"), nil, nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Results, nil
+}
+
+type ListSQLQueriesRequest struct {
+	Limit int    `json:"limit"`
+	Sort  string `json:"sort"` // TODO maybe make this an "enum"
+}
+
+func NewListSQLQueriesRequest() *ListSQLQueriesRequest {
+	request := &ListSQLQueriesRequest{}
+	request.Limit = 25
+	request.Sort = "inserted_at.desc"
+	return request
+}
+
+func (c *Client) ListSQLQueries(request *ListSQLQueriesRequest) ([]*SQLQuery, error) {
+	response := struct {
+		SQLQueries []*SQLQuery `json:"data"`
+	}{}
+
+	query := url.Values{}
+
+	if request.Limit > 0 {
+		query.Set("limit", strconv.Itoa(request.Limit))
+	}
+
+	if request.Sort != "" {
+		query.Set("sort", request.Sort)
+	}
+
+	err := c.Request("GET", "/sql_queries", &query, nil, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.SQLQueries, nil
+}
+
+//
 // Util
 //
 
-func (c *Client) Request(method string, path string, requestStruct interface{}, responseStruct interface{}) error {
+func (c *Client) Request(method string, path string, query *url.Values, requestStruct interface{}, responseStruct interface{}) error {
 	if c.Host == "" {
 		return errors.New("A host is required to make a request to the Timber API")
 	}
 
 	url := fmt.Sprintf("%s%s", c.Host, path)
+
+	if query != nil {
+		url = url + "?" + query.Encode()
+	}
 
 	var rawBody interface{}
 	rawBody = nil
@@ -220,7 +311,8 @@ func (c *Client) Request(method string, path string, requestStruct interface{}, 
 		return nil
 	} else {
 		response := struct {
-			Error Error `json:"error"`
+			Error  *Error   `json:"error"`
+			Errors []*Error `json:"errors"`
 		}{}
 
 		err = json.NewDecoder(resp.Body).Decode(&response)
@@ -228,6 +320,12 @@ func (c *Client) Request(method string, path string, requestStruct interface{}, 
 			return err
 		}
 
-		return &ServiceError{StatusCode: resp.StatusCode, ErrorStruct: response.Error}
+		error := response.Error
+
+		if error == nil && len(response.Errors) > 0 {
+			error = response.Errors[0]
+		}
+
+		return &ServiceError{StatusCode: resp.StatusCode, ErrorStruct: error}
 	}
 }

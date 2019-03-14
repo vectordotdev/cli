@@ -86,6 +86,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c346411e6138741122957ba461b0e8b50c3ff0f416e67e4c5659831e4d1cc204"
+  name = "github.com/tj/go-spin"
+  packages = ["."]
+  pruneopts = ""
+  revision = "30574f5fadef1aa5c61d4c42e936785af9f03ada"
+
+[[projects]]
+  branch = "master"
   digest = "1:ab3e9a81a5ec54c5d1ed41d0d6898ba88c6799fa401b784b06bdee8e432d872b"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
@@ -123,6 +131,7 @@
     "github.com/mattn/go-isatty",
     "github.com/mitchellh/go-homedir",
     "github.com/sirupsen/logrus",
+    "github.com/tj/go-spin",
     "gopkg.in/urfave/cli.v1",
   ]
   solver-name = "gps-cdcl"

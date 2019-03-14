@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -9,10 +10,11 @@ import (
 
 	"github.com/aybabtme/rgbterm"
 	"github.com/timberio/cli/api"
+	"github.com/tj/go-spin"
 )
 
 var (
-	defaultLogFormat = "{{ date }} {{ level }}{{ context.system.ip }} {{ context.system.hostname }} {{ context.http.request_id }} {{ context.user.email }} {{ message }}"
+	defaultLogFormat = "{{ date }} {{ level }} {{ context.system.ip }} {{ context.system.hostname }} {{ context.http.request_id }} {{ context.user.email }} {{ message }}"
 )
 
 // Levels as defined by https://github.com/timberio/log-event-json-schema/blob/master/schema.json
@@ -92,52 +94,96 @@ var tokenRegexp = regexp.MustCompile(`{{\s*(.*?)\s*}}`)
 // TODO fallback to 16 colors
 // TODO implement format parser
 //	Currently only supports a format made of identifiers, space delimited
-func tail(w io.Writer, appIds []string, query string, format string, colorize bool) {
+func tail(w io.Writer, appIds []string, query string, format string, colorize bool) error {
 	fields := []string{}
 	for _, match := range tokenRegexp.FindAllStringSubmatch(format, -1) {
 		fields = append(fields, match[1])
 	}
 
 	colorScale := NewOrdinalColorScale(ordinalScale)
-	datetimeGreaterThan := time.Now().Add(-5 * time.Minute) // TODO make a flag?
+
+	loc, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return err
+	}
+
+	searchRequest := api.NewSearchRequest()
+	searchRequest.ApplicationIds = appIds
+	searchRequest.Limit = 250
+	searchRequest.Query = query
+	searchRequest.Sort = "dt.desc"
+
+	emptyAttempt := 0
+
 	for {
-		logLines, err := client.Search(appIds, datetimeGreaterThan, query)
+		logLines, err := client.Search(searchRequest)
 		if err != nil {
-			logger.Fatal(err)
+			return err
 		}
 
-		// Example:
-		// Dec 14 09:50:16am info ec2-54-175-235-51 Frame batch read, size: 41, iterator_age_ms: 0
-		for _, line := range logLines {
-			if err := formatLine(w, line, fields, colorScale, colorize); err != nil {
-				logger.Fatal(err)
+		if len(logLines) > 0 {
+			logLines = reverse(logLines)
+			fmt.Print("\r")
+			err = printLogLines(w, colorScale, loc, logLines, format, fields)
+			if err != nil {
+				return err
+			}
+			searchRequest.DtGt = logLines[len(logLines)-1].Datetime
+			emptyAttempt = 0
+			time.Sleep(500 * time.Millisecond)
+		} else {
+			if emptyAttempt > 3 {
+				s := spin.New()
+				for i := 0; i < 10; i++ {
+					fmt.Printf("\r%s \033[36mListening for incoming logs\033[m", s.Next())
+					time.Sleep(100 * time.Millisecond)
+				}
+			} else {
+				time.Sleep(500 * time.Millisecond)
+			}
+			emptyAttempt += 1
+		}
+	}
+}
+
+func printLogLines(w io.Writer, colorScale *OrdinalColorScale, loc *time.Location, logLines []*api.LogLine, format string, fields []string) error {
+	// Example:
+	// Dec 14 09:50:16am info ec2-54-175-235-51 Frame batch read, size: 41, iterator_age_ms: 0
+	for _, line := range logLines {
+		switch format {
+		case "json":
+			json, err := json.Marshal(line)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(w, string(json))
+
+		default:
+			if err := printCustomLineFormat(w, line, fields, loc, colorScale, colorize); err != nil {
+				return err
 			}
 		}
 
-		if len(logLines) != 0 {
-			datetimeGreaterThan = logLines[len(logLines)-1].Datetime
-		}
-
-		time.Sleep(500 * time.Millisecond)
 	}
+
+	return nil
 }
 
-func stringContains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
+func reverse(logLines []*api.LogLine) []*api.LogLine {
+	for i := 0; i < len(logLines)/2; i++ {
+		j := len(logLines) - i - 1
+		logLines[i], logLines[j] = logLines[j], logLines[i]
 	}
-	return false
+	return logLines
 }
 
 // TODO this is taking a lot of arguments...
-func formatLine(w io.Writer, line *api.LogLine, fields []string, colorScale *OrdinalColorScale, colorize bool) error {
+func printCustomLineFormat(w io.Writer, line *api.LogLine, fields []string, loc *time.Location, colorScale *OrdinalColorScale, colorize bool) error {
 	for _, field := range fields {
 		formattedField := ""
 		switch field {
 		case "date":
-			formattedField = line.Datetime.Format("Jan 02 03:04:05.000pm")
+			formattedField = line.Datetime.In(loc).Format("Jan 02 03:04:05.000pm")
 			if colorize {
 				formattedField = rgbterm.FgString(formattedField, 85, 79, 201)
 			}

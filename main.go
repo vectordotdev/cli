@@ -20,9 +20,10 @@ import (
 //
 
 var (
-	apiKey  string
-	host    string
-	version string
+	apiKey   string
+	host     string
+	timeZone string
+	version  string
 )
 
 // cribbed from fatih/color
@@ -31,26 +32,32 @@ var colorize = os.Getenv("TERM") != "dumb" &&
 
 var client *api.Client
 var errWriter io.Writer
+var infoWriter io.Writer
 var successWriter io.Writer
+var writer io.Writer
 
 //
 // Types
 //
 
-type coloredErrWriter struct {
+type coloredWriter struct {
+	Header string
+	Color  color.Attribute
 	writer io.Writer
 }
 
-func (w *coloredErrWriter) Write(p []byte) (n int, err error) {
-	red := color.New(color.FgRed).SprintFunc()
+func (w *coloredWriter) Write(p []byte) (n int, err error) {
+	colorFunc := color.New(w.Color).SprintFunc()
 	message := strings.TrimRightFunc(string(p), unicode.IsSpace)
 	messages := strings.Split(message, "\n")
 	nTotal := 0
 
-	w.writer.Write([]byte(red(fmt.Sprint(" ⚠   Error!\n"))))
+	if w.Header != "" {
+		w.writer.Write([]byte(colorFunc(fmt.Sprint(w.Header))))
+	}
 
 	for _, line := range messages {
-		line = red(fmt.Sprint(" ›   ", line, "\n"))
+		line = colorFunc(fmt.Sprint(" ›   ", line, "\n"))
 
 		n, err := w.writer.Write([]byte(line))
 		if err != nil {
@@ -62,29 +69,8 @@ func (w *coloredErrWriter) Write(p []byte) (n int, err error) {
 	return nTotal, nil
 }
 
-type coloredSuccessWriter struct {
-	writer io.Writer
-}
-
-func (w *coloredSuccessWriter) Write(p []byte) (n int, err error) {
-	green := color.New(color.FgGreen).SprintFunc()
-	message := strings.TrimRightFunc(string(p), unicode.IsSpace)
-	messages := strings.Split(message, "\n")
-	nTotal := 0
-
-	w.writer.Write([]byte(green(fmt.Sprint(" ✓   Success!\n"))))
-
-	for _, line := range messages {
-		line = green(fmt.Sprint(" ›   ", line, "\n"))
-
-		n, err := w.writer.Write([]byte(line))
-		if err != nil {
-			return nTotal, err
-		}
-		nTotal += n
-	}
-
-	return nTotal, nil
+func (w *coloredWriter) WriteString(s string) (n int, err error) {
+	return w.Write([]byte(s))
 }
 
 //
@@ -100,8 +86,10 @@ var ErrNoAPIKey = errors.New("We could not locate your Timber API key, run `timb
 //
 
 func init() {
-	errWriter = &coloredErrWriter{writer: os.Stderr}
-	successWriter = &coloredSuccessWriter{writer: os.Stdout}
+	errWriter = &coloredWriter{Header: " ⚠   Error!\n", Color: color.FgRed, writer: os.Stderr}
+	infoWriter = &coloredWriter{Header: " ℹ   Info:\n", Color: color.FgBlue, writer: os.Stdout}
+	successWriter = &coloredWriter{Header: " ✓   Success!\n", Color: color.FgGreen, writer: os.Stdout}
+	writer = os.Stdout
 	cli.ErrWriter = errWriter
 }
 
@@ -112,21 +100,10 @@ func main() {
 	app.Version = version
 
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:   "debug, d",
-			Usage:  "Output debug messages",
-			EnvVar: "TIMBER_DEBUG",
-		},
 		cli.StringFlag{
-			Name:   "api-key, k",
+			Name:   "api-key, K",
 			Usage:  "Your timber.io API key",
 			EnvVar: "TIMBER_API_KEY",
-		},
-		cli.StringFlag{
-			Name:   "host, H",
-			Usage:  "Timber.io host, useful for testing",
-			Value:  "https://api.timber.io",
-			EnvVar: "TIMBER_HOST",
 		},
 		cli.BoolFlag{
 			Name:   "color-output, C",
@@ -138,12 +115,29 @@ func main() {
 			Usage:  "Disable color output",
 			EnvVar: "TIMBER_NO_COLOR",
 		},
+		cli.BoolFlag{
+			Name:   "debug, D",
+			Usage:  "Output debug messages",
+			EnvVar: "TIMBER_DEBUG",
+		},
+		cli.StringFlag{
+			Name:   "host, H",
+			Usage:  "Timber.io host, useful for testing",
+			Value:  "https://api.timber.io",
+			EnvVar: "TIMBER_HOST",
+		},
+		cli.StringFlag{
+			Name:   "time-zone, Z",
+			Usage:  "Time zone, such as \"Local\", \"UTC\", or \"America/New_York\"",
+			Value:  "Local",
+			EnvVar: "TIMBER_TIME_ZONE",
+		},
 	}
 
 	app.Commands = []cli.Command{
 		{
 			Name:      "auth",
-			Usage:     "Authenticate with Timber and persist your API key",
+			Usage:     "Manage authentication for the Timber CLI",
 			ArgsUsage: "[api_key]",
 			Flags:     []cli.Flag{},
 			Action: func(ctx *cli.Context) error {
@@ -155,21 +149,81 @@ func main() {
 				apiKey := ctx.Args().Get(0)
 
 				if apiKey == "" {
-					message := "The api_key argument is required, `timber help auth` for more details"
+					message := "The api_key argument is required: `timber auth [api_key]`\n" +
+						"Run `timber help auth` for more details"
 					// Exit with 65, EX_DATAERR, to indicate input data was incorrect
 					return cli.NewExitError(message, 65)
 				}
 
-				path, err := setApiKey(apiKey)
+				organization, err := auth(apiKey)
 				if err != nil {
 					return err
 				}
 
-				message := fmt.Sprint("Your API key is valid and was persisted at ", path, ".\n"+
-					"Timber will automatically use this API key unless you supply the --api-key flag or the TIMBER_API_KEY env var.")
+				message := fmt.Sprint(
+					"API key added and set to your active credential\n",
+					"Organization ID: ", organization.ID, "\n",
+					"Organization Name: ", organization.Name, "\n",
+					"Run `timber auth list` to list all credentials.\n",
+					"Run `timber auth switch [org_id]` to switch active credentials.\n",
+					"Run `timber help auth` for more details",
+				)
 				successWriter.Write([]byte(message))
 
 				return nil
+			},
+			Subcommands: []cli.Command{
+				{
+					Name:  "list",
+					Usage: "list all credentials",
+					Action: func(ctx *cli.Context) error {
+						err := listCredentials()
+						if err != nil {
+							return err
+						}
+
+						fmt.Println()
+						infoWriter.Write([]byte("Run `timber auth switch [org_id]` to switch active credentials\n" +
+							"Run `timber auth [api_key]` to add a new credential\n" +
+							"Run `timber help auth` for more details"))
+
+						return nil
+
+					},
+				},
+				{
+					Name:      "switch",
+					Usage:     "switch active credentials",
+					ArgsUsage: "[org_id]",
+					Action: func(ctx *cli.Context) error {
+						orgID := ctx.Args().Get(0)
+						return switchActiveCredentials(orgID)
+					},
+				},
+				{
+					Name:      "delete",
+					Usage:     "delete a credential",
+					ArgsUsage: "[org_id]",
+					Action: func(ctx *cli.Context) error {
+						orgID := ctx.Args().Get(0)
+
+						if orgID == "" {
+							message := "You must supply an org_id: timber auth delete [org_id]"
+							// Exit with 65, EX_DATAERR, to indicate input data was incorrect
+							return cli.NewExitError(message, 65)
+						}
+
+						err := deleteCredential(orgID)
+						if err != nil {
+							return err
+						}
+
+						successWriter.Write([]byte("Credential successfully deleted"))
+
+						return nil
+
+					},
+				},
 			},
 		},
 
@@ -196,7 +250,7 @@ func main() {
 				// TODO create a new view to get default format if not set
 				cli.StringFlag{
 					Name:   "log-format, f",
-					Usage:  "Template to format log output. Wrap field identifiers with {{ }}. Currently does not output any sort of errors if this cannot be parsed and ignores all non-identifiers.",
+					Usage:  "Template to format log output. Must be \"json\" or a custom format. For custom formats, wrap field identifiers with {{ }}. Ex: \"{{ dt }} {{ message }}\". Non-existent fields will be ignored.",
 					EnvVar: "TIMBER_LOG_FORMAT",
 					Value:  defaultLogFormat,
 				},
@@ -245,7 +299,7 @@ func main() {
 				if len(sourceIds) == 0 {
 					message := "You must supply at lease one source ID to tail\n" +
 						"1. Run `timber sources` to list all sources\n" +
-						"2. Run `timber tail -s 1234` with the ID of the source you want to tail"
+						"2. Run `timber tail --source-id [source_id]` with the ID of the source you want to tail"
 					// Exit with 65, EX_DATAERR, to indicate input data was incorrect
 					return cli.NewExitError(message, 65)
 				}
@@ -253,6 +307,7 @@ func main() {
 				if ctx.IsSet("log-format") {
 					format = ctx.String("log-format")
 				}
+
 				if ctx.IsSet("query") {
 					query = ctx.String("query")
 				}
@@ -264,17 +319,8 @@ func main() {
 		},
 
 		{
-			Name:  "orgs",
-			Usage: "List organizations that you are a part of",
-			Flags: []cli.Flag{},
-			Action: func(_ *cli.Context) {
-				listOrganizations()
-			},
-		},
-
-		{
 			Name:  "sources",
-			Usage: "List sources that you have access to",
+			Usage: "Manage your Timber sources",
 			Flags: []cli.Flag{},
 			Action: func(ctx *cli.Context) error {
 				err := setGlobalVars(ctx)
@@ -292,17 +338,71 @@ func main() {
 		},
 
 		{
-			Name:  "views",
-			Usage: "List saved views that you have access to (currently only console views are displayed)",
+			Name:  "sql-queries",
+			Usage: "Manage SQL queries",
 			Flags: []cli.Flag{},
-			Action: func(_ *cli.Context) {
-				listSavedViews()
+			Action: func(ctx *cli.Context) error {
+				err := setGlobalVars(ctx)
+				if err != nil {
+					return err
+				}
+
+				err = listSQLQueries()
+				if err != nil {
+					return err
+				}
+
+				return nil
+			},
+			Subcommands: []cli.Command{
+				{
+					Name:      "execute",
+					Usage:     "Execute an SQL query",
+					ArgsUsage: "[sql_query]",
+					Action: func(ctx *cli.Context) error {
+						err := setGlobalVars(ctx)
+						if err != nil {
+							return err
+						}
+
+						query := ctx.Args().Get(0)
+						return executeSQLQuery(query)
+					},
+				},
+				{
+					Name:      "results",
+					Usage:     "Get the results of an SQL query",
+					ArgsUsage: "[sql_query_id]",
+					Action: func(ctx *cli.Context) error {
+						err := setGlobalVars(ctx)
+						if err != nil {
+							return err
+						}
+
+						id := ctx.Args().Get(0)
+						return listSQLQueryResults(id)
+					},
+				},
+			},
+		},
+
+		{
+			Name:  "views",
+			Usage: "Manage your saved views (only console views are supported in the CLI)",
+			Flags: []cli.Flag{},
+			Action: func(ctx *cli.Context) error {
+				err := setGlobalVars(ctx)
+				if err != nil {
+					return err
+				}
+
+				return listSavedViews()
 			},
 		},
 
 		{
 			Name:      "api",
-			Usage:     "Make authenticated requests to the Timber API (http://docs.api.timber.io)",
+			Usage:     "Issue authenticated requests to the Timber API (http://docs.api.timber.io)",
 			ArgsUsage: "[method path]",
 			Flags:     []cli.Flag{},
 			Action: func(ctx *cli.Context) error {
@@ -374,6 +474,11 @@ func setGlobalVars(ctx *cli.Context) error {
 		return err
 	}
 
+	err = setTimeZone(ctx)
+	if err != nil {
+		return err
+	}
+
 	setClient(ctx)
 
 	return nil
@@ -383,12 +488,13 @@ func setAPIKey(ctx *cli.Context) error {
 	apiKey = ctx.GlobalString("api-key")
 
 	if apiKey == "" {
-		storedAPIKey, err := fetchAPIKey()
+		credential, err := getActiveCredential()
 		if err != nil {
 			return err
 		}
-
-		apiKey = storedAPIKey
+		if credential != nil {
+			apiKey = credential.APIKey
+		}
 	}
 
 	if apiKey == "" {
@@ -403,8 +509,22 @@ func setHost(ctx *cli.Context) error {
 	host = ctx.GlobalString("host")
 
 	if host == "" {
-		message := `Timber host is not set
-The default is https://api.timber.io, it appears you've overridden this via the --host flag or the TIMBER_HOST env var`
+		message := "Timber host is not set. The default is https://api.timber.io, it appears " +
+			"you've overridden this via the --host flag or the TIMBER_HOST env var"
+
+		// Exit with 65, EX_DATAERR, to indicate input data was incorrect
+		return cli.NewExitError(message, 65)
+	}
+
+	return nil
+}
+
+func setTimeZone(ctx *cli.Context) error {
+	timeZone = ctx.GlobalString("time-zone")
+
+	if timeZone == "" {
+		message := `Time zone is not set. The default is Local, it appears you've overridden "+
+			"this via the --time-zone flag or the TIMBER_TIME_ZONE env var`
 
 		// Exit with 65, EX_DATAERR, to indicate input data was incorrect
 		return cli.NewExitError(message, 65)
@@ -415,7 +535,7 @@ The default is https://api.timber.io, it appears you've overridden this via the 
 
 func setClient(ctx *cli.Context) {
 	client = api.NewClient(host, apiKey)
-	if ctx.Bool("debug") {
+	if ctx.GlobalBool("debug") {
 		client.SetLogger(logger)
 	}
 }

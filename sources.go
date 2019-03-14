@@ -20,7 +20,7 @@ func listSources() error {
 	for _, application := range applications {
 		fmt.Fprintln(w, strings.Join([]string{
 			application.Name,
-			application.Id,
+			application.ID,
 			application.Slug,
 			application.Environment,
 			application.SourceType,

@@ -7,10 +7,10 @@ import (
 	"text/tabwriter"
 )
 
-func listSavedViews() {
+func listSavedViews() error {
 	savedViews, err := client.ListSavedViews()
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
 
 	w := new(tabwriter.Writer)
@@ -24,7 +24,7 @@ func listSavedViews() {
 		}
 		fmt.Fprintln(w, strings.Join([]string{
 			savedView.Name,
-			savedView.Id,
+			savedView.ID,
 			strings.Join(savedView.ConsoleSettings.SourceIds, ","),
 			strings.Join(savedView.ConsoleSettings.Facets, ","),
 			query,
@@ -32,4 +32,6 @@ func listSavedViews() {
 		}, "\t"))
 	}
 	w.Flush()
+
+	return nil
 }

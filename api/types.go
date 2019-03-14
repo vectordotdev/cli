@@ -7,19 +7,19 @@ import "time"
 
 type ServiceError struct {
 	StatusCode  int
-	ErrorStruct Error
+	ErrorStruct *Error
 }
 
 func (e *ServiceError) Error() string {
-	return fmt.Sprintf("Request to Timber API failed!\nStatus: %d\nMessage: %s", e.StatusCode, e.ErrorStruct.Message)
+	return fmt.Sprintf("Request to Timber API failed!\nResponse Status: %d\n\n%s", e.StatusCode, e.ErrorStruct.Message)
 }
 
 type Application struct {
+	ID                    string    `json:"id"`
 	APIKey                string    `json:"api_key"`
 	BillingSubscriptionID string    `json:"billing_subscription_id"`
 	Environment           string    `json:"environment"`
 	ExternalProvider      *string   `json:"external_provider"`
-	Id                    string    `json:"id"`
 	InsertedAt            time.Time `json:"inserted_at"`
 	LanguageType          *string   `json:"language_type"`
 	LogLineFormat         string    `json:"log_line_format"`
@@ -36,11 +36,11 @@ type Error struct {
 }
 
 type Organization struct {
+	ID                    string    `json:"id"`
 	APIKey                string    `json:"api_key"`
 	BillingSubscriptionID string    `json:"billing_subscription_id"`
 	Environment           string    `json:"environment"`
 	ExternalProvider      *string   `json:"external_provider"`
-	Id                    string    `json:"id"`
 	InsertedAt            time.Time `json:"inserted_at"`
 	LanguageType          *string   `json:"language_type"`
 	LogLineFormat         string    `json:"log_line_format"`
@@ -63,6 +63,7 @@ type LogLine struct {
 
 // TODO fill out chart settings
 type SavedView struct {
+	ID              string      `json:"id"`
 	ChartSettings   interface{} `json:"chart_settings"`
 	ConsoleSettings struct {
 		DtGte         *string  `json:"dt_gte"`
@@ -72,8 +73,17 @@ type SavedView struct {
 		Query         *string  `json:"query"`
 		SourceIds     []string `json:"source_ids"`
 	} `json:"console_settings"`
-	Id             string `json:"id"`
 	Name           string `json:"name"`
 	OrganizationId string `json:"organization_id"`
 	Type           string `json:"type"`
+}
+
+type SQLQuery struct {
+	ID                   string    `json:"id"`
+	Body                 string    `json:"body"`
+	BytesScanned         int       `json:"bytes_scanned"`
+	FailureReason        string    `json:"failure_reason"`
+	InsertedAt           time.Time `json:"inserted_at"`
+	MillisecondsExecuted int       `json:"milliseconds_executed"`
+	Status               string    `json:"status"`
 }

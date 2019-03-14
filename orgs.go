@@ -17,7 +17,7 @@ func listOrganizations() {
 
 	fmt.Fprintln(w, "name\tid\tslug")
 	for _, org := range orgs {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", org.Name, org.Id, org.Slug)
+		fmt.Fprintf(w, "%s\t%s\t%s\n", org.Name, org.ID, org.Slug)
 	}
 	w.Flush()
 }
