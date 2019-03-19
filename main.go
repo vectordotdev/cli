@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"unicode"
 
 	"github.com/aybabtme/rgbterm/rainbow"
 	"github.com/fatih/color"
@@ -20,10 +19,13 @@ import (
 //
 
 var (
-	apiKey   string
-	host     string
-	timeZone string
-	version  string
+	apiKey          string
+	host            string
+	maxColumns      string
+	maxColumnLEngth string
+	maxPerPage      string
+	timeZone        string
+	version         string
 )
 
 // cribbed from fatih/color
@@ -33,7 +35,9 @@ var colorize = os.Getenv("TERM") != "dumb" &&
 var client *api.Client
 var errWriter io.Writer
 var infoWriter io.Writer
+var separator = "---"
 var successWriter io.Writer
+var warningWriter io.Writer
 var writer io.Writer
 
 //
@@ -48,25 +52,13 @@ type coloredWriter struct {
 
 func (w *coloredWriter) Write(p []byte) (n int, err error) {
 	colorFunc := color.New(w.Color).SprintFunc()
-	message := strings.TrimRightFunc(string(p), unicode.IsSpace)
-	messages := strings.Split(message, "\n")
-	nTotal := 0
 
 	if w.Header != "" {
 		w.writer.Write([]byte(colorFunc(fmt.Sprint(w.Header))))
 	}
 
-	for _, line := range messages {
-		line = colorFunc(fmt.Sprint(" ›   ", line, "\n"))
-
-		n, err := w.writer.Write([]byte(line))
-		if err != nil {
-			return nTotal, err
-		}
-		nTotal += n
-	}
-
-	return nTotal, nil
+	message := colorFunc(string(p))
+	return w.writer.Write([]byte(message))
 }
 
 func (w *coloredWriter) WriteString(s string) (n int, err error) {
@@ -86,10 +78,11 @@ var ErrNoAPIKey = errors.New("We could not locate your Timber API key, run `timb
 //
 
 func init() {
-	errWriter = &coloredWriter{Header: " ⚠   Error!\n", Color: color.FgRed, writer: os.Stderr}
-	infoWriter = &coloredWriter{Header: " ℹ   Info:\n", Color: color.FgBlue, writer: os.Stdout}
-	successWriter = &coloredWriter{Header: " ✓   Success!\n", Color: color.FgGreen, writer: os.Stdout}
-	writer = os.Stdout
+	errWriter = &coloredWriter{Header: "⚠ Error!\n", Color: color.FgRed, writer: os.Stderr}
+	infoWriter = &coloredWriter{Header: "", Color: color.FgBlue, writer: os.Stdout}
+	successWriter = &coloredWriter{Header: "✓ Success!\n", Color: color.FgGreen, writer: os.Stdout}
+	warningWriter = &coloredWriter{Header: "", Color: color.FgYellow, writer: os.Stdout}
+	writer = &coloredWriter{Header: "", Color: color.FgGreen, writer: os.Stdout}
 	cli.ErrWriter = errWriter
 }
 
@@ -109,6 +102,24 @@ func main() {
 			Name:   "color-output, C",
 			Usage:  "Set to force color output even if output is not a color terminal",
 			EnvVar: "TIMBER_COLOR",
+		},
+		cli.IntFlag{
+			Name:   "max-columns",
+			Usage:  "Maximum number of columns to display in a table",
+			EnvVar: "TIMBER_MAX_COLUMNS",
+			Value:  7,
+		},
+		cli.IntFlag{
+			Name:   "max-column-length",
+			Usage:  "Maximum length of a single column value",
+			EnvVar: "TIMBER_MAX_COLUMNS",
+			Value:  20,
+		},
+		cli.IntFlag{
+			Name:   "max-per-page",
+			Usage:  "Maximum number of items to display per page",
+			EnvVar: "TIMBER_MAX_PER_PAGE",
+			Value:  25,
 		},
 		cli.BoolFlag{
 			Name:   "monochrome-output, M",
@@ -356,23 +367,15 @@ func main() {
 			},
 			Subcommands: []cli.Command{
 				{
-					Name:      "execute",
-					Usage:     "Execute an SQL query",
+					Name:      "download",
+					Usage:     "Download the results of a SQL query",
 					ArgsUsage: "[sql_query]",
-					Action: func(ctx *cli.Context) error {
-						err := setGlobalVars(ctx)
-						if err != nil {
-							return err
-						}
-
-						query := ctx.Args().Get(0)
-						return executeSQLQuery(query)
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name:  "info, i",
+							Usage: "Prints query info.",
+						},
 					},
-				},
-				{
-					Name:      "results",
-					Usage:     "Get the results of an SQL query",
-					ArgsUsage: "[sql_query_id]",
 					Action: func(ctx *cli.Context) error {
 						err := setGlobalVars(ctx)
 						if err != nil {
@@ -380,7 +383,128 @@ func main() {
 						}
 
 						id := ctx.Args().Get(0)
-						return listSQLQueryResults(id)
+
+						sqlQuery, err := client.GetSQLQuery(id)
+						if err != nil {
+							return err
+						}
+
+						if ctx.IsSet("info") {
+							err = printSQLQueryInfo(sqlQuery)
+							if err != nil {
+								return err
+							}
+
+							fmt.Println()
+						}
+
+						return printSQLQueryResultsURL(sqlQuery)
+					},
+				},
+				{
+					Name:      "execute",
+					Usage:     "Execute a SQL query",
+					ArgsUsage: "[sql_query]",
+					Action: func(ctx *cli.Context) error {
+						err := setGlobalVars(ctx)
+						if err != nil {
+							return err
+						}
+
+						maxColumns := ctx.GlobalInt("max-columns")
+						maxColumnLength := ctx.GlobalInt("max-column-length")
+						maxPerPage := ctx.GlobalInt("max-per-page")
+						query := ctx.Args().Get(0)
+						return executeSQLQuery(query, maxColumns, maxColumnLength, maxPerPage)
+					},
+				},
+				{
+					Name:      "info",
+					Usage:     "Detailed SQL query information",
+					ArgsUsage: "[sql_query_id]",
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name:  "info, i",
+							Usage: "Prints query info.",
+						},
+					},
+					Action: func(ctx *cli.Context) error {
+						err := setGlobalVars(ctx)
+						if err != nil {
+							return err
+						}
+
+						id := ctx.Args().Get(0)
+
+						sqlQuery, err := client.GetSQLQuery(id)
+						if err != nil {
+							return err
+						}
+
+						return printSQLQueryInfo(sqlQuery)
+					},
+				},
+				{
+					Name:      "results",
+					Usage:     "Get the results of a SQL query",
+					ArgsUsage: "[sql_query_id]",
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name:  "info, i",
+							Usage: "Prints query info.",
+						},
+					},
+					Action: func(ctx *cli.Context) error {
+						err := setGlobalVars(ctx)
+						if err != nil {
+							return err
+						}
+
+						id := ctx.Args().Get(0)
+
+						sqlQuery, err := client.GetSQLQuery(id)
+						if err != nil {
+							return err
+						}
+
+						sqlQuery, err = waitForSQLQuery(sqlQuery)
+						if err != nil {
+							return err
+						}
+
+						fmt.Print("\r                                                                                     \r")
+
+						fmt.Println()
+
+						if ctx.IsSet("info") {
+							err = printSQLQueryInfo(sqlQuery)
+							if err != nil {
+								return err
+							}
+
+							fmt.Println("Results:")
+							fmt.Println()
+						}
+
+						maxColumns := ctx.GlobalInt("max-columns")
+						maxColumnLength := ctx.GlobalInt("max-column-length")
+						maxPerPage := ctx.GlobalInt("max-per-page")
+
+						err = listSQLQueryResults(sqlQuery, maxColumns, maxColumnLength, maxPerPage)
+						if err != nil {
+							return err
+						}
+
+						fmt.Println()
+						fmt.Println(separator)
+						fmt.Println()
+
+						fmt.Fprintln(infoWriter, "Add the `--max-columns` flag to adjust the number of columns shown (default 10)")
+						fmt.Fprintln(infoWriter, "Add the `--max-length` flag to adjust the max length of each column (default 10)")
+						fmt.Fprintln(infoWriter, "Add the `--max-results` flag to adjust the number of rows / results shown (default 25)")
+						fmt.Fprintln(infoWriter, "Run `timber help` for more details")
+
+						return nil
 					},
 				},
 			},

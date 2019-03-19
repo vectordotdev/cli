@@ -85,5 +85,6 @@ type SQLQuery struct {
 	FailureReason        string    `json:"failure_reason"`
 	InsertedAt           time.Time `json:"inserted_at"`
 	MillisecondsExecuted int       `json:"milliseconds_executed"`
+	ResultsURL           string    `json:"results_url"`
 	Status               string    `json:"status"`
 }

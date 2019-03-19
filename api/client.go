@@ -211,17 +211,33 @@ func (c *Client) GetSQLQuery(id string) (*SQLQuery, error) {
 	return response.SQLQuery, nil
 }
 
-func (c *Client) GetSQLQueryResults(id string) ([]interface{}, error) {
+type GetSQLQueryResultsRequest struct {
+	MaxResults int    `json:"max_results"`
+	NextToken  string `json:"next_token"`
+}
+
+func (c *Client) GetSQLQueryResults(id string, request *GetSQLQueryResultsRequest) ([]map[string]interface{}, string, error) {
 	response := struct {
-		Results []interface{} `json:"data"`
+		NextToken string                   `json:"next_token"`
+		Results   []map[string]interface{} `json:"data"`
 	}{}
 
-	err := c.Request("GET", path.Join("/sql_queries", id, "results"), nil, nil, &response)
-	if err != nil {
-		return nil, err
+	query := url.Values{}
+
+	if request.MaxResults > 0 {
+		query.Set("max_results", strconv.Itoa(request.MaxResults))
 	}
 
-	return response.Results, nil
+	if request.NextToken != "" {
+		query.Set("next_token", request.NextToken)
+	}
+
+	err := c.Request("GET", path.Join("/sql_queries", id, "results"), &query, nil, &response)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return response.Results, response.NextToken, nil
 }
 
 type ListSQLQueriesRequest struct {

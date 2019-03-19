@@ -1,17 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/timberio/cli/api"
 	"github.com/tj/go-spin"
 )
 
-func executeSQLQuery(query string) error {
+func executeSQLQuery(query string, maxColumns int, maxColumnLength int, maxResults int) error {
 	organization, err := getCurrentOrganization(client)
 	if err != nil {
 		return err
@@ -29,16 +31,9 @@ func executeSQLQuery(query string) error {
 
 	fmt.Print("\r                                                                                     \r")
 
-	switch sqlQuery.Status {
-	case "SUCCEEDED":
-		successWriter.Write([]byte(fmt.Sprintf("SQL query completed, bytes scanned: %v, execution time: %vms", sqlQuery.BytesScanned, sqlQuery.MillisecondsExecuted)))
-	case "CANCELLED", "FAILED":
-		errWriter.Write([]byte("SQL query failed"))
-	}
-
 	fmt.Println()
 
-	err = listSQLQueryResults(sqlQuery.ID)
+	err = listSQLQueryResults(sqlQuery, maxColumns, maxColumnLength, maxResults)
 	if err != nil {
 		return err
 	}
@@ -46,17 +41,104 @@ func executeSQLQuery(query string) error {
 	return nil
 }
 
-func listSQLQueryResults(id string) error {
-	results, err := client.GetSQLQueryResults(id)
+func listSQLQueryResults(sqlQuery *api.SQLQuery, maxColumns int, maxColumnLength int, maxResults int) error {
+	if sqlQuery.Status == "FAILED" || sqlQuery.Status == "CANCELLED" {
+		return nil
+	}
+
+	request := &api.GetSQLQueryResultsRequest{
+		MaxResults: maxResults,
+	}
+
+	results, nextToken, err := client.GetSQLQueryResults(sqlQuery.ID, request)
 	if err != nil {
 		return err
 	}
 
-	// if len(results) > 0 {
-	// 	result := results[0]
-	// }
+	if len(results) == 0 {
+		fmt.Fprintln(errWriter, "No results")
+		return nil
+	}
 
-	fmt.Print(results)
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+
+	if len(results) > 0 {
+
+		// Grab keys up to maxColumns
+		var keys []string
+		i := 0
+
+		for k := range results[0] {
+			if i > maxColumns {
+				break
+			}
+
+			keys = append(keys, k)
+			i += 1
+		}
+
+		// Print keys
+		fmt.Fprint(w, "Row\t")
+
+		for _, k := range keys {
+			if len(k) > maxColumnLength {
+				fmt.Fprint(w, k[0:maxColumnLength]+"...\t")
+			} else {
+				fmt.Fprint(w, k+"\t")
+			}
+		}
+
+		fmt.Fprintln(w)
+
+		for range keys {
+			fmt.Fprint(w, "---\t")
+		}
+
+		fmt.Fprintln(w)
+
+		for i, result := range results {
+			fmt.Fprintf(w, "%v\t", i)
+
+			var values []interface{}
+			i := 0
+
+			// Grab results up to maxColumns
+			for _, v := range result {
+				if i > maxColumns {
+					break
+				}
+
+				values = append(values, v)
+				i += 1
+			}
+
+			// Print results
+			for _, v := range values {
+				json, err := json.Marshal(v)
+				if err != nil {
+					return err
+				}
+
+				if len(json) > maxColumnLength {
+					fmt.Fprintf(w, "%s\t", string(json[0:maxColumnLength])+"...")
+				} else {
+					fmt.Fprintf(w, "%s\t", json)
+				}
+			}
+
+			fmt.Fprintln(w)
+		}
+
+		fmt.Fprintln(w)
+
+		if nextToken != "" {
+			fmt.Fprintf(warningWriter, "⚠  Only %v result shown, run `timber sql-queries download %v` to view all results\n", maxResults, sqlQuery.ID)
+		} else {
+			fmt.Fprintln(w, "All results shown")
+		}
+	}
+	w.Flush()
 
 	return nil
 }
@@ -76,8 +158,9 @@ func listSQLQueries() error {
 	for _, sqlQuery := range sqlQueries {
 		body := strings.ReplaceAll(sqlQuery.Body, "\n", " ")
 
-		if len(body) > 75 {
-			body = body[0:75] + "..."
+		maxBodyLength := 75
+		if len(body) > maxBodyLength {
+			body = body[0:maxBodyLength] + "..."
 		}
 
 		fmt.Fprintln(w, strings.Join([]string{
@@ -86,6 +169,58 @@ func listSQLQueries() error {
 			sqlQuery.Status,
 		}, "\t"))
 	}
+	w.Flush()
+
+	return nil
+}
+
+func printSQLQueryResultsURL(sqlQuery *api.SQLQuery) error {
+	if sqlQuery.ResultsURL != "" {
+		fmt.Println(sqlQuery.ResultsURL)
+	}
+
+	return nil
+}
+
+func printSQLQueryInfo(sqlQuery *api.SQLQuery) error {
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+
+	statusColor := color.FgBlue
+
+	switch sqlQuery.Status {
+	case "SUCCEEDED":
+		statusColor = color.FgGreen
+	case "CANCELLED", "FAILED":
+		statusColor = color.FgRed
+	}
+
+	fmt.Fprintf(w, "ID:\t%v\n", sqlQuery.ID)
+
+	colorFunc := color.New(statusColor).SprintFunc()
+	fmt.Fprintf(w, "Status:\t%v\n", colorFunc(sqlQuery.Status))
+
+	if sqlQuery.FailureReason != "" {
+		fmt.Fprintf(w, "Failure reason:\t%s\n", colorFunc(sqlQuery.FailureReason))
+	}
+
+	maxQueryLength := 200
+	if len(sqlQuery.Body) > maxQueryLength {
+		fmt.Fprintf(w, "Query:\t%v\n", sqlQuery.Body[0:maxQueryLength]+"...")
+	} else {
+		fmt.Fprintf(w, "Query:\t%v\n", sqlQuery.Body)
+	}
+
+	fmt.Fprintf(w, "Executed At:\t%v\n", sqlQuery.InsertedAt)
+
+	if sqlQuery.MillisecondsExecuted > 0 {
+		fmt.Fprintf(w, "Duration:\t%vms\n", sqlQuery.MillisecondsExecuted)
+	}
+
+	if sqlQuery.BytesScanned > 0 {
+		fmt.Fprintf(w, "Scanned:\t%v bytes\n", sqlQuery.BytesScanned)
+	}
+
 	w.Flush()
 
 	return nil
