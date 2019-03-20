@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.2.0] - 2019-03-20
+
+### Added
+
+  - Added `sql-queries download [query_id]`
+
+### Fixed
+
+  - Fix an issue displaying SQL query results
+
 ## [0.1.0] - 2019-03-14
 
-- Fix bug with live tailing
-- Addded `timber auth` and sub-commands
+### Added
+  
+  - Addded `timber auth` and sub-commands
+
+### Fixed
+  
+  - Fix bug with live tailing
 
 ## [0.0.1] - 2019-03-12
 
