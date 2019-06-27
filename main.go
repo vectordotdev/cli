@@ -530,8 +530,21 @@ func main() {
 			ArgsUsage: "[method path]",
 			Flags:     []cli.Flag{},
 			Action: func(ctx *cli.Context) error {
+				err := setGlobalVars(ctx)
+				if err != nil {
+					return err
+				}
+
 				method := strings.ToUpper(ctx.Args().Get(0))
 				path := ctx.Args().Get(1)
+
+				if method == "" || path == "" {
+					message := "The method and path arguments are required: `timber api [method path]`\n" +
+						"Run `timber help api` for more details"
+					// Exit with 65, EX_DATAERR, to indicate input data was incorrect
+					return cli.NewExitError(message, 65)
+				}
+
 				return request(method, path, nil)
 			},
 		},
